@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Panel principal{% endblock %}
+
+{% block content %}
+<section class="page">
+    <h1 class="page__title">Bienvenido, {{ user.username }}</h1>
+    <p class="page__subtitle">
+        Rol: <strong>{{ ROLES[user.role] }}</strong>
+        {% if user.person_type %} · {{ PERSON_TYPES[user.person_type] }}{% endif %}
+    </p>
+
+    {% if user.role == 'ADMIN' %}
+    <div class="cards">
+        <article class="card">
+            <h2 class="card__title">Operaciones</h2>
+            <p class="card__text">Cree, consulte, actualice y elimine operaciones de importación y exportación.</p>
+            <a class="btn btn--primary" href="/operations">Gestionar operaciones</a>
+        </article>
+        <article class="card">
+            <h2 class="card__title">Usuarios</h2>
+            <p class="card__text">Consulte los usuarios registrados y administre sus cuentas.</p>
+            <a class="btn btn--primary" href="/admin/users">Gestionar usuarios</a>
+        </article>
+    </div>
+    {% else %}
+    <div class="cards">
+        <article class="card">
+            <h2 class="card__title">Cuenta activa</h2>
+            <p class="card__text">
+                Su cuenta de {{ ROLES[user.role] }} está registrada correctamente.
+                Las operaciones del sistema son gestionadas por el administrador.
+            </p>
+        </article>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

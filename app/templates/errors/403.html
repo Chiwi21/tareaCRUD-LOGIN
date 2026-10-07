@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Acceso denegado{% endblock %}
+
+{% block content %}
+<section class="page page--center">
+    <h1 class="page__title">403 · Acceso denegado</h1>
+    <p class="page__subtitle">{{ detail or 'No tiene permisos para acceder a esta sección.' }}</p>
+    <a class="btn btn--primary" href="/dashboard">Volver al panel</a>
+</section>
+{% endblock %}
