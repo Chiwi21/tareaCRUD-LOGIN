@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Operación #{{ operation.id }}{% endblock %}
+
+{% block content %}
+<section class="page">
+    <div class="page__header">
+        <h1 class="page__title">Operación #{{ operation.id }}</h1>
+        <div class="page__actions">
+            <a class="btn btn--primary" href="/operations/{{ operation.id }}/edit">Editar</a>
+            <a class="btn btn--outline" href="/operations">Volver</a>
+        </div>
+    </div>
+
+    <dl class="detail">
+        <div class="detail__item">
+            <dt class="detail__label">Tipo</dt>
+            <dd class="detail__value"><span class="badge badge--{{ operation.type|lower }}">{{ OPERATION_TYPES[operation.type] }}</span></dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Producto</dt>
+            <dd class="detail__value">{{ operation.product }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Cantidad</dt>
+            <dd class="detail__value">{{ operation.quantity }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">País</dt>
+            <dd class="detail__value">{{ operation.country }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Fecha</dt>
+            <dd class="detail__value">{{ operation.date.strftime('%Y-%m-%d') }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Estado</dt>
+            <dd class="detail__value">{{ OPERATION_STATUSES[operation.status] }}</dd>
+        </div>
+    </dl>
+
+    <form method="post" action="/operations/{{ operation.id }}/delete"
+          onsubmit="return confirm('¿Eliminar la operación #{{ operation.id }}?');">
+        <button class="btn btn--danger" type="submit">Eliminar operación</button>
+    </form>
+</section>
+{% endblock %}

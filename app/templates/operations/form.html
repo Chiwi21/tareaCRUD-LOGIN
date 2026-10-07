@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<section class="page page--narrow">
+    <h1 class="page__title">{{ title }}</h1>
+
+    {% if errors %}
+    <div class="alert alert--error">
+        <ul class="alert__list">
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form class="form" method="post" action="{{ action_url }}">
+        <label class="form__label" for="type">Tipo de operación</label>
+        <select class="form__input" id="type" name="type" required>
+            <option value="">Seleccione...</option>
+            <option value="IMPORT" {% if values.get('type') == 'IMPORT' %}selected{% endif %}>Importación</option>
+            <option value="EXPORT" {% if values.get('type') == 'EXPORT' %}selected{% endif %}>Exportación</option>
+        </select>
+
+        <label class="form__label" for="product">Producto</label>
+        <input class="form__input" id="product" name="product" type="text"
+               value="{{ values.get('product', '') }}" required>
+
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="quantity">Cantidad</label>
+                <input class="form__input" id="quantity" name="quantity" type="number" min="1"
+                       value="{{ values.get('quantity', '') }}" required>
+            </div>
+            <div class="form__col">
+                <label class="form__label" for="country">País</label>
+                <input class="form__input" id="country" name="country" type="text"
+                       value="{{ values.get('country', '') }}" required>
+            </div>
+        </div>
+
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="date">Fecha</label>
+                <input class="form__input" id="date" name="date" type="date"
+                       value="{{ values.get('date', '') }}" required>
+            </div>
+            <div class="form__col">
+                <label class="form__label" for="status">Estado</label>
+                <select class="form__input" id="status" name="status" required>
+                    <option value="">Seleccione...</option>
+                    <option value="PENDING" {% if values.get('status') == 'PENDING' %}selected{% endif %}>Pendiente</option>
+                    <option value="IN_PROGRESS" {% if values.get('status') == 'IN_PROGRESS' %}selected{% endif %}>En proceso</option>
+                    <option value="DONE" {% if values.get('status') == 'DONE' %}selected{% endif %}>Completada</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form__actions">
+            <button class="btn btn--primary" type="submit">Guardar</button>
+            <a class="btn btn--outline" href="/operations">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

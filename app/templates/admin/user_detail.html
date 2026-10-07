@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle de usuario{% endblock %}
+
+{% block content %}
+<section class="page">
+    <div class="page__header">
+        <h1 class="page__title">Usuario: {{ target.username }}</h1>
+        <a class="btn btn--outline" href="/admin/users">Volver</a>
+    </div>
+
+    <dl class="detail">
+        <div class="detail__item">
+            <dt class="detail__label">ID</dt>
+            <dd class="detail__value">{{ target.id }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Usuario</dt>
+            <dd class="detail__value">{{ target.username }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Rol</dt>
+            <dd class="detail__value"><span class="badge">{{ ROLES[target.role] }}</span></dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Tipo de persona</dt>
+            <dd class="detail__value">{{ PERSON_TYPES[target.person_type] if target.person_type else '—' }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Nombre completo</dt>
+            <dd class="detail__value">{{ target.full_name or '—' }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Cédula</dt>
+            <dd class="detail__value">{{ target.cedula or '—' }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">RUC</dt>
+            <dd class="detail__value">{{ target.ruc or '—' }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Razón social</dt>
+            <dd class="detail__value">{{ target.razon_social or '—' }}</dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Fecha de registro</dt>
+            <dd class="detail__value">{{ target.created_at.strftime('%Y-%m-%d %H:%M') if target.created_at else '—' }}</dd>
+        </div>
+    </dl>
+
+    {% if target.id != user.id %}
+    <form method="post" action="/admin/users/{{ target.id }}/delete"
+          onsubmit="return confirm('¿Eliminar al usuario {{ target.username }}?');">
+        <button class="btn btn--danger" type="submit">Eliminar usuario</button>
+    </form>
+    {% else %}
+    <p class="alert alert--info">No es posible eliminar su propia cuenta de administrador.</p>
+    {% endif %}
+</section>
+{% endblock %}
