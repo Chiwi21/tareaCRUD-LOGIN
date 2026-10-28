@@ -8,17 +8,25 @@ Uso:
     python seed.py
 """
 
+import os
+
 from app.constants import ROLE_ADMIN
-from app.database import Base, SessionLocal, engine
+from app.database import Base, SessionLocal, engine, ensure_operation_user_column
 from app.models import User
 from app.security import hash_password
 
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin123"
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin123")
 
 
 def main() -> None:
+    if not ADMIN_USERNAME.strip():
+        raise SystemExit("ADMIN_USERNAME no puede estar vacío.")
+    if len(ADMIN_PASSWORD) < 6:
+        raise SystemExit("ADMIN_PASSWORD debe tener al menos 6 caracteres.")
+
     Base.metadata.create_all(bind=engine)
+    ensure_operation_user_column()
 
     db = SessionLocal()
     try:
@@ -34,11 +42,10 @@ def main() -> None:
         )
         db.add(admin)
         db.commit()
-        db.refresh(admin)
 
         print("Base de datos inicializada correctamente.")
-        print(f"Usuario administrador creado: {ADMIN_USERNAME} / {ADMIN_PASSWORD}")
-        print(f"Hash almacenado (nunca la contraseña en texto plano): {admin.password_hash}")
+        print(f"Usuario administrador creado: {ADMIN_USERNAME}")
+        print("La contraseña se almacenó como hash bcrypt.")
     finally:
         db.close()
 

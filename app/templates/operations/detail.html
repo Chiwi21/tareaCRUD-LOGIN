@@ -14,6 +14,10 @@
 
     <dl class="detail">
         <div class="detail__item">
+            <dt class="detail__label">Usuario responsable</dt>
+            <dd class="detail__value">{{ operation.user.username if operation.user else 'Sin asignar' }}</dd>
+        </div>
+        <div class="detail__item">
             <dt class="detail__label">Tipo</dt>
             <dd class="detail__value"><span class="badge badge--{{ operation.type|lower }}">{{ OPERATION_TYPES[operation.type] }}</span></dd>
         </div>

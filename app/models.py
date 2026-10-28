@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -19,12 +21,21 @@ class User(Base):
     ruc: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=True)
     razon_social: Mapped[str | None] = mapped_column(String(150), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    operations: Mapped[list[Operation]] = relationship(
+        back_populates="user",
+        passive_deletes="all",
+    )
 
 
 class Operation(Base):
     __tablename__ = "operations"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
     type: Mapped[str] = mapped_column(String(20))
     product: Mapped[str] = mapped_column(String(120))
     quantity: Mapped[int] = mapped_column(Integer)
@@ -32,3 +43,4 @@ class Operation(Base):
     date: Mapped[date] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    user: Mapped[User | None] = relationship(back_populates="operations")

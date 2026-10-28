@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.constants import ROLE_ADMIN
 from app.database import get_db
-from app.models import User
+from app.models import Operation, User
 from app.security import hash_password, require_admin
 from app.templating import templates
 from app.user_validation import validate_password, validate_user_profile
@@ -242,6 +242,18 @@ def delete_user_html(
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
+    if db.query(Operation.id).filter(Operation.user_id == target.id).first() is not None:
+        users = db.query(User).order_by(User.id).all()
+        return templates.TemplateResponse(
+            request,
+            "admin/users.html",
+            {
+                "user": user,
+                "users": users,
+                "error": "No se puede eliminar el usuario porque tiene operaciones asignadas.",
+            },
+            status_code=status.HTTP_409_CONFLICT,
+        )
     db.delete(target)
     db.commit()
     return RedirectResponse("/admin/users?deleted=1", status_code=status.HTTP_303_SEE_OTHER)
@@ -274,6 +286,11 @@ def api_delete_user(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No puede eliminar su propia cuenta de administrador.",
+        )
+    if db.query(Operation.id).filter(Operation.user_id == target.id).first() is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No se puede eliminar el usuario porque tiene operaciones asignadas.",
         )
     db.delete(target)
     db.commit()

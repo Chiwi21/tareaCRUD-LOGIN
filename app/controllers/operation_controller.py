@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
-from app.constants import OPERATION_STATUSES, OPERATION_TYPES
+from app.constants import OPERATION_STATUSES, OPERATION_TYPES, ROLE_EXPORTER, ROLE_IMPORTER
 from app.database import get_db
 from app.models import Operation, User
 from app.security import require_admin
@@ -22,7 +22,25 @@ def get_operation_or_404(db: Session, operation_id: int) -> Operation:
     return operation
 
 
-def validate_operation(type: str, product: str, quantity: str, country: str, date: str, op_status: str):
+def get_assignable_users(db: Session) -> list[User]:
+    return (
+        db.query(User)
+        .filter(User.role.in_((ROLE_IMPORTER, ROLE_EXPORTER)))
+        .order_by(User.username)
+        .all()
+    )
+
+
+def validate_operation(
+    type: str,
+    product: str,
+    quantity: str,
+    country: str,
+    date: str,
+    op_status: str,
+    selected_user_id: str,
+    db: Session,
+):
     errors: list[str] = []
     type = type.strip()
     product = product.strip()
@@ -54,14 +72,39 @@ def validate_operation(type: str, product: str, quantity: str, country: str, dat
     if op_status not in OPERATION_STATUSES:
         errors.append("Debe seleccionar un estado válido.")
 
-    return errors, type, product, quantity_value, country, date_value, op_status
+    user_id = None
+    try:
+        user_id = int(selected_user_id)
+    except (TypeError, ValueError):
+        errors.append("Debe seleccionar un usuario Importador o Exportador.")
+    else:
+        assigned_user = db.get(User, user_id)
+        if assigned_user is None or assigned_user.role not in (ROLE_IMPORTER, ROLE_EXPORTER):
+            errors.append("El usuario seleccionado no existe o no puede tener operaciones asignadas.")
+
+    return errors, type, product, quantity_value, country, date_value, op_status, user_id
 
 
-def render_form(request: Request, user: User, action_url: str, title: str, values: dict, errors=None):
+def render_form(
+    request: Request,
+    user: User,
+    action_url: str,
+    title: str,
+    values: dict,
+    available_users: list[User],
+    errors=None,
+):
     return templates.TemplateResponse(
         request,
         "operations/form.html",
-        {"user": user, "action_url": action_url, "title": title, "values": values, "errors": errors or []},
+        {
+            "user": user,
+            "action_url": action_url,
+            "title": title,
+            "values": values,
+            "available_users": available_users,
+            "errors": errors or [],
+        },
         status_code=status.HTTP_400_BAD_REQUEST if errors else status.HTTP_200_OK,
     )
 
@@ -73,8 +116,19 @@ def list_operations(request: Request, user: User = Depends(require_admin), db: S
 
 
 @router.get("/operations/new")
-def new_operation_form(request: Request, user: User = Depends(require_admin)):
-    return render_form(request, user, "/operations/new", "Nueva operación", {})
+def new_operation_form(
+    request: Request,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return render_form(
+        request,
+        user,
+        "/operations/new",
+        "Nueva operación",
+        {},
+        get_assignable_users(db),
+    )
 
 
 @router.post("/operations/new")
@@ -86,11 +140,12 @@ def create_operation(
     country: str = Form(...),
     date: str = Form(...),
     op_status: str = Form(..., alias="status"),
+    user_id: str = Form(""),
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    errors, type, product, quantity_value, country, date_value, op_status = validate_operation(
-        type, product, quantity, country, date, op_status
+    errors, type, product, quantity_value, country, date_value, op_status, assigned_user_id = validate_operation(
+        type, product, quantity, country, date, op_status, user_id, db
     )
     values = {
         "type": type,
@@ -99,11 +154,21 @@ def create_operation(
         "country": country,
         "date": date,
         "status": op_status,
+        "user_id": user_id,
     }
     if errors:
-        return render_form(request, user, "/operations/new", "Nueva operación", values, errors)
+        return render_form(
+            request,
+            user,
+            "/operations/new",
+            "Nueva operación",
+            values,
+            get_assignable_users(db),
+            errors,
+        )
 
     operation = Operation(
+        user_id=assigned_user_id,
         type=type,
         product=product,
         quantity=quantity_value,
@@ -136,6 +201,7 @@ def edit_operation_form(
 ):
     operation = get_operation_or_404(db, operation_id)
     values = {
+        "user_id": str(operation.user_id or ""),
         "type": operation.type,
         "product": operation.product,
         "quantity": operation.quantity,
@@ -143,7 +209,14 @@ def edit_operation_form(
         "date": operation.date.isoformat(),
         "status": operation.status,
     }
-    return render_form(request, user, f"/operations/{operation.id}/edit", "Editar operación", values)
+    return render_form(
+        request,
+        user,
+        f"/operations/{operation.id}/edit",
+        "Editar operación",
+        values,
+        get_assignable_users(db),
+    )
 
 
 @router.post("/operations/{operation_id}/edit")
@@ -156,12 +229,13 @@ def update_operation(
     country: str = Form(...),
     date: str = Form(...),
     op_status: str = Form(..., alias="status"),
+    user_id: str = Form(""),
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
     operation = get_operation_or_404(db, operation_id)
-    errors, type, product, quantity_value, country, date_value, op_status = validate_operation(
-        type, product, quantity, country, date, op_status
+    errors, type, product, quantity_value, country, date_value, op_status, assigned_user_id = validate_operation(
+        type, product, quantity, country, date, op_status, user_id, db
     )
     values = {
         "type": type,
@@ -170,10 +244,20 @@ def update_operation(
         "country": country,
         "date": date,
         "status": op_status,
+        "user_id": user_id,
     }
     if errors:
-        return render_form(request, user, f"/operations/{operation.id}/edit", "Editar operación", values, errors)
+        return render_form(
+            request,
+            user,
+            f"/operations/{operation.id}/edit",
+            "Editar operación",
+            values,
+            get_assignable_users(db),
+            errors,
+        )
 
+    operation.user_id = assigned_user_id
     operation.type = type
     operation.product = product
     operation.quantity = quantity_value
@@ -202,6 +286,8 @@ def api_list_operations(user: User = Depends(require_admin), db: Session = Depen
     return [
         {
             "id": operation.id,
+            "user_id": operation.user_id,
+            "username": operation.user.username if operation.user else None,
             "type": operation.type,
             "product": operation.product,
             "quantity": operation.quantity,

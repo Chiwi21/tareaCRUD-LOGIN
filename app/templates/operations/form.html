@@ -17,6 +17,19 @@
     {% endif %}
 
     <form class="form" method="post" action="{{ action_url }}">
+        <label class="form__label" for="user_id">Importador / Exportador responsable</label>
+        <select class="form__input" id="user_id" name="user_id" required>
+            <option value="">Seleccione un usuario...</option>
+            {% for account in available_users %}
+            <option value="{{ account.id }}" {% if values.get('user_id')|string == account.id|string %}selected{% endif %}>
+                {{ account.username }} — {{ ROLES[account.role] }}
+            </option>
+            {% endfor %}
+        </select>
+        {% if not available_users %}
+        <p class="form__hint">Primero registre un Importador o Exportador para poder asignar la operación.</p>
+        {% endif %}
+
         <label class="form__label" for="type">Tipo de operación</label>
         <select class="form__input" id="type" name="type" required>
             <option value="">Seleccione...</option>

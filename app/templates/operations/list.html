@@ -15,6 +15,7 @@
             <thead>
                 <tr>
                     <th>ID</th>
+                    <th>Usuario</th>
                     <th>Tipo</th>
                     <th>Producto</th>
                     <th>Cantidad</th>
@@ -28,6 +29,7 @@
                 {% for operation in operations %}
                 <tr>
                     <td>{{ operation.id }}</td>
+                    <td>{{ operation.user.username if operation.user else 'Sin asignar' }}</td>
                     <td><span class="badge badge--{{ operation.type|lower }}">{{ OPERATION_TYPES[operation.type] }}</span></td>
                     <td>{{ operation.product }}</td>
                     <td>{{ operation.quantity }}</td>

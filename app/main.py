@@ -10,10 +10,11 @@ from app.controllers import (
     dashboard_controller,
     operation_controller,
 )
-from app.database import Base, engine
+from app.database import Base, engine, ensure_operation_user_column
 from app.templating import templates
 
 Base.metadata.create_all(bind=engine)
+ensure_operation_user_column()
 
 app = FastAPI(title="Sistema Import/Export - Tarea 3 CRUD/Login")
 

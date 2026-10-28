@@ -15,6 +15,7 @@ Implementa el patrón **MVC**, un sistema de **autenticación con roles** y un *
 - [Arquitectura MVC](#arquitectura-mvc)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Instalación y ejecución](#instalación-y-ejecución)
+- [Despliegue en Render con Neon PostgreSQL](#despliegue-en-render-con-neon-postgresql)
 - [Credenciales de prueba](#credenciales-de-prueba)
 - [Rutas y protección](#rutas-y-protección)
 - [Protección de rutas en detalle](#protección-de-rutas-en-detalle)
@@ -28,8 +29,10 @@ Implementa el patrón **MVC**, un sistema de **autenticación con roles** y un *
 - **Login** con usuario y contraseña; las contraseñas se almacenan únicamente como **hash (bcrypt)**.
 - **Registro público** solo para usuarios **Importador** y **Exportador**, con validación condicional según el tipo de persona (Natural o Jurídica).
 - **Administrador** creado automáticamente mediante un **seed**; no puede registrarse públicamente.
-- **Panel de administración** de usuarios: listar, ver detalle y eliminar usuarios. El admin **no puede eliminarse a sí mismo**.
+- **CRUD administrativo de usuarios** Importador/Exportador con validación backend de cédula obligatoria y única. La cuenta ADMIN del seed está protegida.
 - **CRUD de operaciones** (Crear, Leer, Actualizar, Eliminar) exclusivo del administrador.
+- Cada operación se asigna a un Importador/Exportador existente mediante un dropdown; el backend valida la clave foránea.
+- SQLite para desarrollo local y PostgreSQL online mediante `DATABASE_URL` para despliegue.
 - **Protección de rutas**:
   - Vistas HTML sin sesión → redirección a `/login`.
   - Endpoints REST sin sesión → `401 Unauthorized`.
@@ -53,14 +56,16 @@ Implementa el patrón **MVC**, un sistema de **autenticación con roles** y un *
 | **Jinja2** | Motor de plantillas (vistas HTML) |
 | **SQLAlchemy** | ORM (modelos y acceso a datos) |
 | **SQLite** | Base de datos local (archivo `data/app.db`) |
+| **PostgreSQL** | Base de datos online en producción |
 | **Starlette SessionMiddleware** | Sesiones con cookie firmada |
 | **bcrypt** | Hash de contraseñas |
+| **psycopg** | Conexión SQLAlchemy a PostgreSQL en producción |
 
 ## Arquitectura MVC
 
 | Capa | Responsabilidad | Archivos |
 |---|---|---|
-| **Modelo** | Lógica de datos y reglas de negocio | `app/models.py`, `app/database.py`, `app/security.py` |
+| **Modelo** | Lógica de datos y reglas de negocio | `app/models.py`, `app/database.py`, `app/security.py`, `app/user_validation.py` |
 | **Vista** | Interfaz con el usuario | `app/templates/`, `app/static/` |
 | **Controlador** | Conecta modelo y vista, recibe las peticiones | `app/controllers/` |
 
@@ -79,9 +84,10 @@ tarea3-crud-login/
 │   ├── main.py                     # Aplicación, sesiones y manejo de 401/403
 │   ├── config.py                   # SECRET_KEY y configuración
 │   ├── constants.py                # Roles, tipos de persona, estados
-│   ├── database.py                 # Conexión SQLite y sesión de BD
-│   ├── models.py                   # Modelo: User y Operation
+│   ├── database.py                 # SQLite local/PostgreSQL online y migración FK
+│   ├── models.py                   # User y Operation (Operation.user_id → User.id)
 │   ├── security.py                 # Hash de contraseñas y guards de acceso
+│   ├── user_validation.py          # Validación backend de perfiles y contraseñas
 │   ├── templating.py               # Configuración de Jinja2
 │   ├── controllers/
 │   │   ├── auth_controller.py      # /login, /logout, /register
@@ -91,6 +97,7 @@ tarea3-crud-login/
 │   ├── templates/                  # Vistas HTML (Jinja2)
 │   └── static/                     # CSS y JavaScript
 ├── seed.py                         # Crea las tablas y el admin inicial
+├── render.yaml                     # Configuración de despliegue en Render
 ├── requirements.txt
 └── README.md
 ```
@@ -124,15 +131,27 @@ uvicorn app.main:app --reload
 
 La aplicación queda disponible en **http://127.0.0.1:8000** y la documentación automática de la API en **http://127.0.0.1:8000/docs**.
 
-> El archivo de base de datos `data/app.db` se crea automáticamente y está excluido del repositorio (`.gitignore`). Para restablecer el sistema, elimine `data/app.db` y ejecute `python seed.py` nuevamente.
+> El archivo `data/app.db` se crea automáticamente y está excluido del repositorio. Antes de restablecerlo, haga una copia si necesita conservar los datos. La aplicación agrega de forma compatible `user_id` a tablas de operaciones de la versión anterior, sin borrar las operaciones existentes.
 
-## Credenciales de prueba
+## Despliegue en Render con Neon PostgreSQL
+
+En local, si no se define `DATABASE_URL`, la aplicación usa SQLite (`data/app.db`). En producción puede conectarse a PostgreSQL mediante SQLAlchemy.
+
+1. Cree un proyecto PostgreSQL en Neon y copie la connection string con SSL.
+2. Importe este repositorio en Render como un Web Service usando la rama `main` y `render.yaml`.
+3. En Render, configure `DATABASE_URL` con la connection string de Neon y `ADMIN_PASSWORD` con una contraseña única de producción. `SECRET_KEY` se genera desde la configuración de Render.
+4. Render instala las dependencias, ejecuta `python seed.py` (idempotente) y levanta Uvicorn en el puerto asignado.
+5. Guarde la URL pública asignada por Render aquí: _(pendiente de desplegar)_ y pruebe login, CRUD, validaciones y rutas protegidas.
+
+**No incluya** la connection string, `SECRET_KEY` ni la contraseña de producción en Git, README, capturas o video. El disco local del servicio gratuito de Render es temporal; PostgreSQL en Neon mantiene los datos entre despliegues.
+
+## Credenciales de prueba locales
 
 | Rol | Usuario | Contraseña |
 |---|---|---|
 | Administrador | `admin` | `admin123` |
 
-Los usuarios **Importador** y **Exportador** se crean desde la pantalla de registro (`/register`).
+Estas credenciales son solo para desarrollo local. En producción se define otra contraseña mediante `ADMIN_PASSWORD` en Render. Los usuarios **Importador** y **Exportador** se crean desde la pantalla de registro (`/register`) o desde el panel ADMIN.
 
 ## Rutas y protección
 
@@ -154,18 +173,22 @@ Los usuarios **Importador** y **Exportador** se crean desde la pantalla de regis
 | GET | `/dashboard` | Cualquiera con sesión | Panel principal |
 | GET | `/operations` | ADMIN | Lista de operaciones |
 | GET | `/operations/new` | ADMIN | Formulario de creación |
-| POST | `/operations/new` | ADMIN | Crea una operación |
+| POST | `/operations/new` | ADMIN | Crea una operación asociada a un Importador/Exportador seleccionado |
 | GET | `/operations/{id}` | ADMIN | Detalle de una operación |
 | GET | `/operations/{id}/edit` | ADMIN | Formulario de edición |
 | POST | `/operations/{id}/edit` | ADMIN | Actualiza una operación |
 | POST | `/operations/{id}/delete` | ADMIN | Elimina una operación |
 | GET | `/admin/users` | ADMIN | Lista de usuarios registrados |
+| GET | `/admin/users/new` | ADMIN | Formulario de creación de usuario |
+| POST | `/admin/users/new` | ADMIN | Crea un Importador/Exportador con validación backend |
 | GET | `/admin/users/{id}` | ADMIN | Detalle de un usuario |
-| POST | `/admin/users/{id}/delete` | ADMIN | Elimina un usuario (excepto a sí mismo) |
-| GET | `/api/operations` | ADMIN | Lista de operaciones en JSON |
+| GET | `/admin/users/{id}/edit` | ADMIN | Formulario de edición (no modifica la cuenta ADMIN del seed) |
+| POST | `/admin/users/{id}/edit` | ADMIN | Actualiza perfil y, opcionalmente, contraseña |
+| POST | `/admin/users/{id}/delete` | ADMIN | Elimina usuarios no ADMIN que no tengan operaciones asociadas |
+| GET | `/api/operations` | ADMIN | Lista de operaciones y usuario asociado en JSON |
 | GET | `/api/admin/users` | ADMIN | Lista de usuarios en JSON |
 | GET | `/api/admin/users/{id}` | ADMIN | Detalle de usuario en JSON |
-| DELETE | `/api/admin/users/{id}` | ADMIN | Elimina usuario vía API (excepto a sí mismo) |
+| DELETE | `/api/admin/users/{id}` | ADMIN | Elimina usuario si no es el ADMIN activo y no tiene operaciones asociadas |
 
 ## Protección de rutas en detalle
 
@@ -194,6 +217,7 @@ _(agregar capturas del login, del CRUD y del test de incógnito)_
 
 ## Autores
 
-- _(Nombre de los integrantes del grupo)_
+- Cristian López
+- Alfredo Chiguano
 
 Proyecto académico — **Ingeniería Web**, Tarea 3: CRUD / Login con MVC.
