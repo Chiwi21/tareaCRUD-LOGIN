@@ -7,6 +7,38 @@ from app.models import User
 MIN_PASSWORD_LENGTH = 6
 
 
+def es_cedula_ecuatoriana_valida(cedula: str) -> bool:
+    """Comprueba el formato y el dígito verificador de una cédula ecuatoriana.
+
+    Verifica 10 dígitos ASCII, código de provincia (01-24 o 30),
+    tercer dígito y algoritmo módulo 10. No consulta al Registro Civil
+    ni confirma que el número haya sido emitido a una persona.
+    """
+    if len(cedula) != 10 or not cedula.isascii() or not cedula.isdigit():
+        return False
+
+    provincia = int(cedula[:2])
+    if not (1 <= provincia <= 24 or provincia == 30):
+        return False
+
+    tercer_digito = int(cedula[2])
+    if tercer_digito > 5:
+        return False
+    # Serie 30: ecuatorianos registrados en consulados en el exterior.
+    if provincia == 30 and tercer_digito not in (4, 5):
+        return False
+
+    digitos = [int(numero) for numero in cedula]
+    coeficientes = (2, 1, 2, 1, 2, 1, 2, 1, 2)
+    total = 0
+    for numero, coeficiente in zip(digitos[:9], coeficientes):
+        producto = numero * coeficiente
+        total += producto - 9 if producto > 9 else producto
+
+    digito_verificador = (10 - (total % 10)) % 10
+    return digitos[9] == digito_verificador
+
+
 def _user_value_exists(db: Session, field, value: str, exclude_user_id: int | None) -> bool:
     query = db.query(User.id).filter(field == value)
     if exclude_user_id is not None:
@@ -56,8 +88,11 @@ def validate_user_profile(
 
         if not cedula:
             errors.append("La cédula es obligatoria para Persona Natural.")
-        elif len(cedula) > 20:
-            errors.append("La cédula no puede superar los 20 caracteres.")
+        elif not es_cedula_ecuatoriana_valida(cedula):
+            errors.append(
+                "La cédula ecuatoriana debe tener 10 dígitos, un código "
+                "de provincia válido y un dígito verificador correcto."
+            )
         elif _user_value_exists(db, User.cedula, cedula, exclude_user_id):
             errors.append("La cédula ya está registrada.")
 
