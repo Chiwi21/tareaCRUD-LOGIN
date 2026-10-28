@@ -6,7 +6,12 @@
 <section class="page">
     <div class="page__header">
         <h1 class="page__title">Usuario: {{ target.username }}</h1>
-        <a class="btn btn--outline" href="/admin/users">Volver</a>
+        <div class="page__actions">
+            {% if target.role != 'ADMIN' %}
+            <a class="btn btn--primary" href="/admin/users/{{ target.id }}/edit">Editar usuario</a>
+            {% endif %}
+            <a class="btn btn--outline" href="/admin/users">Volver</a>
+        </div>
     </div>
 
     <dl class="detail">
@@ -48,13 +53,13 @@
         </div>
     </dl>
 
-    {% if target.id != user.id %}
+    {% if target.role != 'ADMIN' %}
     <form method="post" action="/admin/users/{{ target.id }}/delete"
           onsubmit="return confirm('¿Eliminar al usuario {{ target.username }}?');">
         <button class="btn btn--danger" type="submit">Eliminar usuario</button>
     </form>
     {% else %}
-    <p class="alert alert--info">No es posible eliminar su propia cuenta de administrador.</p>
+    <p class="alert alert--info">La cuenta Administrador está protegida y se gestiona mediante el seed.</p>
     {% endif %}
 </section>
 {% endblock %}

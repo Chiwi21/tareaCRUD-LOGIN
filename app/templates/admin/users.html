@@ -6,7 +6,12 @@
 <section class="page">
     <div class="page__header">
         <h1 class="page__title">Usuarios registrados</h1>
+        <a class="btn btn--primary" href="/admin/users/new">Nuevo usuario</a>
     </div>
+
+    {% if success %}
+    <p class="alert alert--success">{{ success }}</p>
+    {% endif %}
 
     {% if error %}
     <p class="alert alert--error">{{ error }}</p>
@@ -36,13 +41,14 @@
                     <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '—' }}</td>
                     <td class="table__actions">
                         <a class="btn btn--outline btn--sm" href="/admin/users/{{ u.id }}">Ver</a>
-                        {% if u.id != user.id %}
+                        {% if u.role != 'ADMIN' %}
+                        <a class="btn btn--outline btn--sm" href="/admin/users/{{ u.id }}/edit">Editar</a>
                         <form method="post" action="/admin/users/{{ u.id }}/delete"
                               onsubmit="return confirm('¿Eliminar al usuario {{ u.username }}?');">
                             <button class="btn btn--danger btn--sm" type="submit">Eliminar</button>
                         </form>
                         {% else %}
-                        <span class="table__self">Su cuenta</span>
+                        <span class="table__self">Cuenta protegida por seed</span>
                         {% endif %}
                     </td>
                 </tr>

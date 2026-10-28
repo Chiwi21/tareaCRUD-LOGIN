@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<section class="page page--narrow">
+    <div class="page__header">
+        <h1 class="page__title">{{ title }}</h1>
+        <a class="btn btn--outline" href="{{ cancel_url }}">Cancelar</a>
+    </div>
+
+    {% if errors %}
+    <div class="alert alert--error" role="alert">
+        <ul class="alert__list">
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form class="form" method="post" action="{{ action_url }}">
+        <label class="form__label" for="user_type">Tipo de usuario</label>
+        <select class="form__input" id="user_type" name="user_type" required>
+            <option value="">Seleccione...</option>
+            <option value="IMPORTER" {% if values.get('user_type') == 'IMPORTER' %}selected{% endif %}>Importador</option>
+            <option value="EXPORTER" {% if values.get('user_type') == 'EXPORTER' %}selected{% endif %}>Exportador</option>
+        </select>
+
+        <label class="form__label" for="person_type">Tipo de persona</label>
+        <select class="form__input" id="person_type" name="person_type" required>
+            <option value="">Seleccione...</option>
+            <option value="NATURAL" {% if values.get('person_type') == 'NATURAL' %}selected{% endif %}>Persona Natural</option>
+            <option value="JURIDICA" {% if values.get('person_type') == 'JURIDICA' %}selected{% endif %}>Persona Jurídica</option>
+        </select>
+
+        <fieldset class="form__group" id="natural-fields" hidden>
+            <legend class="form__legend">Datos de Persona Natural</legend>
+            <label class="form__label" for="full_name">Nombre completo</label>
+            <input class="form__input" id="full_name" name="full_name" type="text" maxlength="120"
+                   value="{{ values.get('full_name') or '' }}">
+
+            <label class="form__label" for="cedula">Cédula</label>
+            <input class="form__input" id="cedula" name="cedula" type="text" inputmode="numeric" maxlength="20"
+                   value="{{ values.get('cedula') or '' }}">
+            <small class="form__hint">La cédula es obligatoria y el servidor verifica que no esté registrada.</small>
+        </fieldset>
+
+        <fieldset class="form__group" id="juridica-fields" hidden>
+            <legend class="form__legend">Datos de Persona Jurídica</legend>
+            <label class="form__label" for="ruc">RUC</label>
+            <input class="form__input" id="ruc" name="ruc" type="text" inputmode="numeric" maxlength="20"
+                   value="{{ values.get('ruc') or '' }}">
+
+            <label class="form__label" for="razon_social">Razón social o nombre de compañía</label>
+            <input class="form__input" id="razon_social" name="razon_social" type="text" maxlength="150"
+                   value="{{ values.get('razon_social') or '' }}">
+        </fieldset>
+
+        <label class="form__label" for="username">Usuario</label>
+        <input class="form__input" id="username" name="username" type="text" maxlength="50"
+               value="{{ values.get('username') or '' }}" required>
+
+        {% if is_edit %}
+        <p class="form__hint">Deje la contraseña vacía para conservar la actual. Si la cambia, deberá confirmarla.</p>
+        {% else %}
+        <p class="form__hint">La contraseña debe tener al menos 6 caracteres y se guardará como hash.</p>
+        {% endif %}
+
+        <label class="form__label" for="password">{{ 'Nueva contraseña' if is_edit else 'Contraseña' }}</label>
+        <input class="form__input" id="password" name="password" type="password"
+               autocomplete="new-password" {% if not is_edit %}required{% endif %}>
+
+        <label class="form__label" for="confirm_password">Confirmar contraseña</label>
+        <input class="form__input" id="confirm_password" name="confirm_password" type="password"
+               autocomplete="new-password" {% if not is_edit %}required{% endif %}>
+
+        <div class="form__actions">
+            <button class="btn btn--primary" type="submit">Guardar usuario</button>
+            <a class="btn btn--outline" href="{{ cancel_url }}">Cancelar</a>
+        </div>
+    </form>
+</section>
+
+<script src="/static/js/register.js"></script>
+{% endblock %}
