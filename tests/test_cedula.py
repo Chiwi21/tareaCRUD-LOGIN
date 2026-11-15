@@ -42,6 +42,7 @@ class TestCedulaEcuatoriana(unittest.TestCase):
 
     def test_impide_guardar_perfil_con_cedula_incorrecta(self):
         engine = create_engine("sqlite+pysqlite:///:memory:")
+        self.addCleanup(engine.dispose)
         Base.metadata.create_all(engine)
         with Session(engine) as db:
             values, errors = validate_user_profile(
@@ -57,6 +58,7 @@ class TestCedulaEcuatoriana(unittest.TestCase):
 
     def test_mantiene_validacion_de_duplicados(self):
         engine = create_engine("sqlite+pysqlite:///:memory:")
+        self.addCleanup(engine.dispose)
         Base.metadata.create_all(engine)
         with Session(engine) as db:
             db.add(User(

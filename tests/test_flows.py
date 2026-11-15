@@ -23,7 +23,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-from app.database import Base, get_db
+from app.database import Base, engine as app_engine, get_db
 from app.main import app
 from app.models import (
     Alert,
@@ -102,7 +102,9 @@ class TradeLabFlowTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         app.dependency_overrides.pop(get_db, None)
+        cls.client.close()
         cls.engine.dispose()
+        app_engine.dispose()
         cls.temp_dir.cleanup()
 
     # ------------------------------------------------------------------
