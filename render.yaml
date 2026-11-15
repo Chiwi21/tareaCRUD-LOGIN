@@ -1,10 +1,11 @@
 services:
   - type: web
-    name: tarea3-crud-login
+    name: tradelab
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: python migrate_legacy.py && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -14,3 +15,7 @@ services:
         value: admin
       - key: ADMIN_PASSWORD
         sync: false
+      - key: DEMO_PASSWORD
+        sync: false
+      - key: SEED_DEMO
+        value: "1"

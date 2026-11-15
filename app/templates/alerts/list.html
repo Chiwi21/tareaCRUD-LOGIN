@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Alertas · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page">
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow">Monitoreo</p>
+            <h1 class="page__title">Alertas de operación</h1>
+            <p class="page__subtitle">Operaciones estancadas, documentos faltantes o por vencer, facturas vencidas y embarques retrasados.</p>
+        </div>
+        <form method="post" action="/alerts/generate">
+            <button class="btn btn--primary" type="submit">Evaluar reglas ahora</button>
+        </form>
+    </div>
+
+    <form class="filters" method="get" action="/alerts">
+        <div class="filters__grid">
+            <div class="filters__field">
+                <label class="form__label" for="status">Estado</label>
+                <select class="form__input" id="status" name="status">
+                    {% for code, label in ALERT_STATUSES.items() %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                    <option value="" {% if status_filter == '' %}selected{% endif %}>Todas</option>
+                </select>
+            </div>
+            <div class="filters__field">
+                <label class="form__label" for="severity">Severidad</label>
+                <select class="form__input" id="severity" name="severity">
+                    <option value="">Todas</option>
+                    {% for code, label in SEVERITIES.items() %}
+                    <option value="{{ code }}" {% if severity == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filters__actions">
+                <button class="btn btn--primary" type="submit">Filtrar</button>
+                <a class="btn btn--outline" href="/alerts">Limpiar</a>
+            </div>
+        </div>
+    </form>
+
+    <p class="section__meta">{{ open_count }} alertas abiertas en total.</p>
+
+    {% if alerts %}
+    <div class="alert-feed">
+        {% for alert in alerts %}
+        <article class="alert-card alert-card--{{ alert.severity|lower }}">
+            <div class="alert-card__body">
+                <div class="alert-card__top">
+                    <span class="chip chip--{{ alert.severity|status_class }}">{{ SEVERITIES[alert.severity] }}</span>
+                    <span class="chip chip--{{ alert.status|status_class }}">{{ ALERT_STATUSES[alert.status] }}</span>
+                    <span class="muted">{{ ALERT_TYPES[alert.type] }}</span>
+                    {% if alert.operation %}
+                    <a class="link" href="/operations/{{ alert.operation.id }}">{{ alert.operation.code }}</a>
+                    {% endif %}
+                </div>
+                <h2 class="alert-card__title">{{ alert.title }}</h2>
+                <p class="alert-card__text">{{ alert.message }}</p>
+                <p class="muted">Generada {{ alert.created_at|datefmt('%Y-%m-%d %H:%M') }}{% if alert.resolved_at %} · Resuelta {{ alert.resolved_at|datefmt('%Y-%m-%d %H:%M') }}{% endif %}</p>
+                {% if alert.status == 'OPEN' %}
+                <form method="post" action="/alerts/{{ alert.id }}/resolve">
+                    <button class="btn btn--outline btn--sm" type="submit">Marcar resuelta</button>
+                </form>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h2>Sin alertas</h2>
+        <p>No hay alertas que coincidan con el filtro. Ejecute la evaluación para revisar las reglas de negocio.</p>
+        <form method="post" action="/alerts/generate"><button class="btn btn--primary" type="submit">Evaluar reglas</button></form>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

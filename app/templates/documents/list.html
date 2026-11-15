@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Documentos · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page">
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow">Cumplimiento</p>
+            <h1 class="page__title">Gestión documental</h1>
+            <p class="page__subtitle">Documentos de importación y exportación, estados de aprobación y vencimientos.</p>
+        </div>
+        <a class="btn btn--primary" href="/documents/new">+ Registrar documento</a>
+    </div>
+
+    <form class="filters" method="get" action="/documents">
+        <div class="filters__grid">
+            <div class="filters__field">
+                <label class="form__label" for="q">Buscar</label>
+                <input class="form__input" id="q" name="q" type="search" value="{{ q }}" placeholder="Documento, operación o tipo...">
+            </div>
+            <div class="filters__field">
+                <label class="form__label" for="status">Estado</label>
+                <select class="form__input" id="status" name="status">
+                    <option value="">Todos</option>
+                    {% for code, label in DOCUMENT_STATUSES.items() %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filters__actions">
+                <button class="btn btn--primary" type="submit">Filtrar</button>
+                <a class="btn btn--outline" href="/documents">Limpiar</a>
+            </div>
+        </div>
+    </form>
+
+    {% if documents %}
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Documento</th>
+                    <th>Tipo</th>
+                    <th>Operación</th>
+                    <th>Estado</th>
+                    <th>Emisión</th>
+                    <th>Vence</th>
+                    <th>Archivo</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for document in documents %}
+                <tr>
+                    <td><strong>{{ document.name }}</strong></td>
+                    <td>{{ document.document_type.name if document.document_type else '—' }}</td>
+                    <td>
+                        {% if document.operation %}
+                        <a class="link" href="/operations/{{ document.operation.id }}">{{ document.operation.code }}</a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td><span class="chip chip--{{ document.status|status_class }}">{{ DOCUMENT_STATUSES[document.status] }}</span></td>
+                    <td>{{ document.issue_date|datefmt }}</td>
+                    <td>
+                        {{ document.expiry_date|datefmt }}
+                        {% if document.expiry_date and document.days_to_expire is not none %}
+                        <span class="muted">({{ document.days_to_expire }} días)</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if document.file_url %}
+                        <a class="link" href="{{ document.file_url }}" target="_blank" rel="noopener">Ver</a>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="table__actions">
+                        <a class="btn btn--outline btn--sm" href="/documents/{{ document.id }}/edit">Editar</a>
+                        <form method="post" action="/documents/{{ document.id }}/delete" onsubmit="return confirm('¿Eliminar este documento?');">
+                            <button class="btn btn--danger btn--sm" type="submit">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h2>Sin documentos</h2>
+        <p>Registre facturas comerciales, certificados de origen, BL, seguros y demás documentos de la operación.</p>
+        <a class="btn btn--primary" href="/documents/new">Registrar documento</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

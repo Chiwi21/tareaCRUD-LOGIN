@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} · TradeLab{% endblock %}
 
 {% block content %}
 <section class="page page--narrow">
     <div class="page__header">
-        <h1 class="page__title">{{ title }}</h1>
+        <div>
+            <p class="page__eyebrow">Administración</p>
+            <h1 class="page__title">{{ title }}</h1>
+            <p class="page__subtitle">El rol, la cédula y el RUC se validan en el servidor. La contraseña se guarda como hash bcrypt.</p>
+        </div>
         <a class="btn btn--outline" href="{{ cancel_url }}">Cancelar</a>
     </div>
 
@@ -60,6 +64,19 @@
         <label class="form__label" for="username">Usuario</label>
         <input class="form__input" id="username" name="username" type="text" maxlength="50"
                value="{{ values.get('username') or '' }}" required>
+
+        <label class="form__label" for="company_id">Empresa vinculada</label>
+        <select class="form__input" id="company_id" name="company_id">
+            <option value="">Sin empresa</option>
+            {% for company in companies %}
+            <option value="{{ company.id }}" {% if values.get('company_id')|string == company.id|string %}selected{% endif %}>{{ company.name }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="form__check">
+            <input type="checkbox" name="is_active" value="1" {% if values.get('is_active') %}checked{% endif %}>
+            <span>Cuenta activa</span>
+        </label>
 
         {% if is_edit %}
         <p class="form__hint">Deje la contraseña vacía para conservar la actual. Si la cambia, deberá confirmarla.</p>

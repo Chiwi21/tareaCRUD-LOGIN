@@ -1,51 +1,530 @@
 {% extends "base.html" %}
 
-{% block title %}Operación #{{ operation.id }}{% endblock %}
+{% block title %}{{ operation.code }} · TradeLab{% endblock %}
+
+{% macro cost_line_form(scenario) %}
+<details class="inline-details">
+    <summary>+ Agregar línea de costo</summary>
+    <form class="form form--compact cost-line-form" method="post" action="/scenarios/{{ scenario.id }}/items">
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="concept-{{ scenario.id }}">Concepto</label>
+                <select class="form__input cost-concept" id="concept-{{ scenario.id }}" name="concept_id" required>
+                    <option value="">Seleccione...</option>
+                    {% for concept in cost_concepts %}
+                    <option value="{{ concept.id }}" data-calculation="{{ concept.calculation_type }}" data-rate="{{ concept.default_rate }}">{{ concept.name }} · {{ COST_CATEGORIES[concept.category] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form__col">
+                <label class="form__label">Tipo de cálculo</label>
+                <select class="form__input" name="calculation_type">
+                    {% for code, label in CALCULATION_TYPES.items() %}
+                    <option value="{{ code }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label">Tasa / valor</label>
+                <input class="form__input" name="rate" type="number" step="0.0001" min="0" required value="0">
+            </div>
+            <div class="form__col">
+                <label class="form__label">Cantidad</label>
+                <input class="form__input" name="quantity" type="number" step="0.01" min="0.01" value="1">
+            </div>
+            <div class="form__col">
+                <label class="form__label">Base para porcentaje</label>
+                <input class="form__input" name="base_amount" type="number" step="0.01" min="0" value="{{ operation.product_subtotal }}">
+            </div>
+        </div>
+        <label class="form__label">Descripción</label>
+        <input class="form__input" name="description" type="text" placeholder="Detalle opcional de la línea">
+        <div class="form__actions">
+            <button class="btn btn--primary btn--sm" type="submit">Agregar línea</button>
+        </div>
+    </form>
+</details>
+{% endmacro %}
 
 {% block content %}
+{% set symbol = operation.currency.symbol if operation.currency else '$' %}
 <section class="page">
     <div class="page__header">
-        <h1 class="page__title">Operación #{{ operation.id }}</h1>
+        <div>
+            <p class="page__eyebrow">Operación {{ operation.code }}</p>
+            <h1 class="page__title">{{ operation.company.name if operation.company else 'Operación sin empresa' }}</h1>
+            <p class="page__subtitle">
+                <span class="badge badge--{{ operation.type|lower }}">{{ OPERATION_TYPES[operation.type] }}</span>
+                <span class="chip chip--{{ operation.status|status_class }}">{{ OPERATION_STATUSES[operation.status] }}</span>
+                · {{ operation.operation_date|datefmt }}
+                {% if operation.incoterm %} · {{ operation.incoterm.code }}{% endif %}
+            </p>
+        </div>
         <div class="page__actions">
+            {% if is_admin %}
             <a class="btn btn--primary" href="/operations/{{ operation.id }}/edit">Editar</a>
+            <form method="post" action="/operations/{{ operation.id }}/delete" onsubmit="return confirm('¿Eliminar la operación {{ operation.code }}? Se eliminarán sus ítems, escenarios, documentos y facturas.');">
+                <button class="btn btn--danger" type="submit">Eliminar</button>
+            </form>
+            {% endif %}
             <a class="btn btn--outline" href="/operations">Volver</a>
         </div>
     </div>
 
-    <dl class="detail">
+    <dl class="detail detail--grid">
         <div class="detail__item">
-            <dt class="detail__label">Usuario responsable</dt>
+            <dt class="detail__label">Responsable</dt>
             <dd class="detail__value">{{ operation.user.username if operation.user else 'Sin asignar' }}</dd>
         </div>
         <div class="detail__item">
-            <dt class="detail__label">Tipo</dt>
-            <dd class="detail__value"><span class="badge badge--{{ operation.type|lower }}">{{ OPERATION_TYPES[operation.type] }}</span></dd>
+            <dt class="detail__label">Ruta</dt>
+            <dd class="detail__value">
+                {{ operation.origin_port.name if operation.origin_port else '—' }}
+                →
+                {{ operation.destination_port.name if operation.destination_port else '—' }}
+            </dd>
         </div>
         <div class="detail__item">
-            <dt class="detail__label">Producto</dt>
-            <dd class="detail__value">{{ operation.product }}</dd>
+            <dt class="detail__label">Moneda</dt>
+            <dd class="detail__value">{{ operation.currency.code if operation.currency else '—' }}</dd>
         </div>
         <div class="detail__item">
-            <dt class="detail__label">Cantidad</dt>
-            <dd class="detail__value">{{ operation.quantity }}</dd>
+            <dt class="detail__label">Incoterm</dt>
+            <dd class="detail__value">{{ operation.incoterm.code if operation.incoterm else '—' }}</dd>
         </div>
         <div class="detail__item">
-            <dt class="detail__label">País</dt>
-            <dd class="detail__value">{{ operation.country }}</dd>
+            <dt class="detail__label">Creada</dt>
+            <dd class="detail__value">{{ operation.created_at|datefmt('%Y-%m-%d %H:%M') }}</dd>
         </div>
         <div class="detail__item">
-            <dt class="detail__label">Fecha</dt>
-            <dd class="detail__value">{{ operation.date.strftime('%Y-%m-%d') }}</dd>
-        </div>
-        <div class="detail__item">
-            <dt class="detail__label">Estado</dt>
-            <dd class="detail__value">{{ OPERATION_STATUSES[operation.status] }}</dd>
+            <dt class="detail__label">Último movimiento</dt>
+            <dd class="detail__value">{{ operation.updated_at|datefmt('%Y-%m-%d %H:%M') }}</dd>
         </div>
     </dl>
 
-    <form method="post" action="/operations/{{ operation.id }}/delete"
-          onsubmit="return confirm('¿Eliminar la operación #{{ operation.id }}?');">
-        <button class="btn btn--danger" type="submit">Eliminar operación</button>
-    </form>
+    <div class="kpi-grid kpi-grid--compact">
+        <article class="kpi">
+            <span class="kpi__label">Valor de productos</span>
+            <strong class="kpi__value">{{ symbol }} {{ operation.product_subtotal|money }}</strong>
+            <span class="kpi__hint">{{ operation.items|length }} ítems</span>
+        </article>
+        <article class="kpi">
+            <span class="kpi__label">Escenario seleccionado</span>
+            <strong class="kpi__value">{{ symbol }} {{ operation.selected_scenario.total|money if operation.selected_scenario else '0.00' }}</strong>
+            <span class="kpi__hint">{{ operation.selected_scenario.name if operation.selected_scenario else 'Sin seleccionar' }}</span>
+        </article>
+        <article class="kpi kpi--success">
+            <span class="kpi__label">Ahorro potencial</span>
+            <strong class="kpi__value">{{ symbol }} {{ savings|money }}</strong>
+            <span class="kpi__hint">Mejor vs. peor escenario</span>
+        </article>
+        <article class="kpi {% if approved_documents < checklist|length %}kpi--warning{% endif %}">
+            <span class="kpi__label">Documentos aprobados</span>
+            <strong class="kpi__value">{{ approved_documents }} / {{ checklist|length }}</strong>
+            <span class="kpi__hint">Checklist de la operación</span>
+        </article>
+        <article class="kpi {% if open_alerts %}kpi--danger{% endif %}">
+            <span class="kpi__label">Alertas abiertas</span>
+            <strong class="kpi__value">{{ open_alerts|length }}</strong>
+            <span class="kpi__hint">Requieren revisión</span>
+        </article>
+    </div>
+
+    {% if operation.notes %}
+    <section class="section section--note">
+        <h2 class="section__title">Notas</h2>
+        <p>{{ operation.notes }}</p>
+    </section>
+    {% endif %}
+
+    <div class="grid-2">
+        <section class="section">
+            <div class="section__header">
+                <h2 class="section__title">Productos de la operación</h2>
+                <span class="section__meta">{{ operation.items|length }} ítems</span>
+            </div>
+            {% if operation.items %}
+            <div class="table-wrapper">
+                <table class="table table--compact">
+                    <thead>
+                        <tr><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th>{% if is_admin %}<th></th>{% endif %}</tr>
+                    </thead>
+                    <tbody>
+                        {% for item in operation.items %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.product.name }}</strong>
+                                <span class="muted">{{ item.product.sku }}{% if item.description %} · {{ item.description }}{% endif %}</span>
+                            </td>
+                            <td>{{ item.quantity|money }} {{ item.product.unit }}</td>
+                            <td class="money">{{ symbol }} {{ item.unit_price|money }}</td>
+                            <td class="money">{{ symbol }} {{ item.subtotal|money }}</td>
+                            {% if is_admin %}
+                            <td>
+                                <form method="post" action="/operations/{{ operation.id }}/items/{{ item.id }}/delete" onsubmit="return confirm('¿Eliminar este producto de la operación?');">
+                                    <button class="btn btn--danger btn--sm" type="submit">Quitar</button>
+                                </form>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty">La operación todavía no tiene productos.</p>
+            {% endif %}
+
+            {% if is_admin %}
+            <details class="inline-details">
+                <summary>+ Agregar producto</summary>
+                <form class="form form--compact" method="post" action="/operations/{{ operation.id }}/items">
+                    <div class="form__row">
+                        <div class="form__col">
+                            <label class="form__label" for="product_id">Producto</label>
+                            <select class="form__input" id="product_id" name="product_id" required>
+                                <option value="">Seleccione...</option>
+                                {% for product in products %}
+                                <option value="{{ product.id }}" data-price="{{ product.unit_price }}">{{ product.name }} ({{ product.sku }}) · {{ product.unit }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form__col">
+                            <label class="form__label" for="quantity">Cantidad</label>
+                            <input class="form__input" id="quantity" name="quantity" type="number" step="0.01" min="0.01" value="1" required>
+                        </div>
+                        <div class="form__col">
+                            <label class="form__label" for="unit_price">Precio unitario</label>
+                            <input class="form__input" id="unit_price" name="unit_price" type="number" step="0.01" min="0" value="0" required>
+                        </div>
+                    </div>
+                    <label class="form__label" for="description">Descripción</label>
+                    <input class="form__input" id="description" name="description" type="text" placeholder="Detalle opcional">
+                    <div class="form__actions"><button class="btn btn--primary btn--sm" type="submit">Agregar</button></div>
+                </form>
+            </details>
+            {% endif %}
+        </section>
+
+        <section class="section">
+            <div class="section__header">
+                <h2 class="section__title">Historial de estados</h2>
+            </div>
+            <ol class="timeline">
+                {% for entry in operation.status_history %}
+                <li class="timeline__item">
+                    <span class="timeline__dot"></span>
+                    <div>
+                        <strong>{{ OPERATION_STATUSES[entry.to_status] }}</strong>
+                        {% if entry.from_status %}<span class="muted">desde {{ OPERATION_STATUSES[entry.from_status] }}</span>{% endif %}
+                        <p class="muted">{{ entry.created_at|datefmt('%Y-%m-%d %H:%M') }} · {{ entry.changed_by.username if entry.changed_by else 'Sistema' }}{% if entry.note %} · {{ entry.note }}{% endif %}</p>
+                    </div>
+                </li>
+                {% endfor %}
+            </ol>
+            {% if is_admin and status_options %}
+            <form class="form form--compact" method="post" action="/operations/{{ operation.id }}/status">
+                <div class="form__row">
+                    <div class="form__col">
+                        <label class="form__label" for="status">Nuevo estado</label>
+                        <select class="form__input" id="status" name="status" required>
+                            {% for code in status_options %}
+                            <option value="{{ code }}">{{ OPERATION_STATUSES[code] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form__col">
+                        <label class="form__label" for="note">Nota</label>
+                        <input class="form__input" id="note" name="note" type="text" placeholder="Motivo del cambio">
+                    </div>
+                </div>
+                <div class="form__actions"><button class="btn btn--primary btn--sm" type="submit">Cambiar estado</button></div>
+            </form>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="section">
+        <div class="section__header">
+            <div>
+                <h2 class="section__title">Escenarios de costo</h2>
+                <p class="section__subtitle">Compare producto, flete, seguro y cargos. El escenario seleccionado alimenta el costo estimado de la operación.</p>
+            </div>
+            {% if comparison.best %}
+            <span class="chip chip--success">Mejor: {{ comparison.best.name }} · {{ symbol }} {{ comparison.best_total|money }}</span>
+            {% endif %}
+        </div>
+
+        {% if comparison.scenarios %}
+        <div class="scenario-grid">
+            {% for scenario in comparison.scenarios %}
+            <article class="scenario {% if scenario.is_selected %}scenario--selected{% endif %}">
+                <header class="scenario__header">
+                    <div>
+                        <h3 class="scenario__title">{{ scenario.name }}</h3>
+                        {% if scenario.description %}<p class="muted">{{ scenario.description }}</p>{% endif %}
+                    </div>
+                    <div class="scenario__total">
+                        <span class="muted">Total</span>
+                        <strong>{{ symbol }} {{ scenario.total|money }}</strong>
+                    </div>
+                </header>
+                {% if scenario.is_selected %}<span class="chip chip--success">Seleccionado</span>{% endif %}
+                <div class="table-wrapper">
+                    <table class="table table--compact">
+                        <thead><tr><th>Concepto</th><th>Cálculo</th><th>Base</th><th>Monto</th>{% if is_admin %}<th></th>{% endif %}</tr></thead>
+                        <tbody>
+                            {% for item in scenario.items %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.concept.name if item.concept else item.description }}</strong>
+                                    <span class="muted">{{ COST_CATEGORIES[item.concept.category] if item.concept else '' }}{% if item.description and item.concept and item.description != item.concept.name %} · {{ item.description }}{% endif %}</span>
+                                </td>
+                                <td>{{ CALCULATION_TYPES[item.calculation_type] }}</td>
+                                <td class="money">{{ item.base_amount|money }}</td>
+                                <td class="money">{{ symbol }} {{ item.amount|money }}</td>
+                                {% if is_admin %}
+                                <td>
+                                    <form method="post" action="/scenario-items/{{ item.id }}/delete">
+                                        <button class="btn btn--danger btn--sm" type="submit">×</button>
+                                    </form>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3">Total del escenario</th>
+                                <th class="money">{{ symbol }} {{ scenario.total|money }}</th>
+                                {% if is_admin %}<th></th>{% endif %}
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% if is_admin %}
+                <div class="scenario__actions">
+                    {% if not scenario.is_selected %}
+                    <form method="post" action="/scenarios/{{ scenario.id }}/select">
+                        <button class="btn btn--primary btn--sm" type="submit">Seleccionar escenario</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" action="/scenarios/{{ scenario.id }}/delete" onsubmit="return confirm('¿Eliminar el escenario {{ scenario.name }}?');">
+                        <button class="btn btn--danger btn--sm" type="submit">Eliminar</button>
+                    </form>
+                </div>
+                {{ cost_line_form(scenario) }}
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty">Todavía no hay escenarios. Cree uno para comparar alternativas de costo.</p>
+        {% endif %}
+
+        {% if is_admin %}
+        <details class="inline-details" {% if not comparison.scenarios %}open{% endif %}>
+            <summary>+ Nuevo escenario de costo</summary>
+            <form class="form form--compact" method="post" action="/operations/{{ operation.id }}/scenarios">
+                <div class="form__row">
+                    <div class="form__col">
+                        <label class="form__label" for="scenario_name">Nombre</label>
+                        <input class="form__input" id="scenario_name" name="name" type="text" required placeholder="Ej. Marítimo FOB">
+                    </div>
+                    <div class="form__col">
+                        <label class="form__label" for="scenario_description">Descripción</label>
+                        <input class="form__input" id="scenario_description" name="description" type="text" placeholder="Ej. Flete consolidado semanal">
+                    </div>
+                </div>
+                <div class="form__actions"><button class="btn btn--primary btn--sm" type="submit">Crear escenario</button></div>
+            </form>
+        </details>
+        {% endif %}
+    </section>
+
+    <section class="section">
+        <div class="section__header">
+            <div>
+                <h2 class="section__title">Documentos y checklist</h2>
+                <p class="section__subtitle">Documentos obligatorios según el tipo de operación, con estado y vencimiento.</p>
+            </div>
+            {% if is_admin %}<a class="btn btn--outline btn--sm" href="/documents/new?operation_id={{ operation.id }}">+ Registrar documento</a>{% endif %}
+        </div>
+        {% if checklist %}
+        <div class="table-wrapper">
+            <table class="table table--compact">
+                <thead><tr><th>Documento</th><th>Obligatorio</th><th>Estado</th><th>Vencimiento</th><th>Archivo</th>{% if is_admin %}<th></th>{% endif %}</tr></thead>
+                <tbody>
+                    {% for entry in checklist %}
+                    <tr>
+                        <td>
+                            <strong>{{ entry.document_type.name }}</strong>
+                            <span class="muted">{{ entry.document_type.code }}{% if entry.document_type.requires_expiry %} · controla vencimiento{% endif %}</span>
+                        </td>
+                        <td>{{ 'Sí' if entry.document_type.is_required else 'No' }}</td>
+                        <td><span class="chip chip--{{ entry.status|status_class }}">{{ DOCUMENT_STATUSES[entry.status] }}</span></td>
+                        <td>{{ entry.expiry_date|datefmt }}</td>
+                        <td>
+                            {% if entry.document and entry.document.file_url %}
+                            <a class="link" href="{{ entry.document.file_url }}" target="_blank" rel="noopener">Ver</a>
+                            {% else %}—{% endif %}
+                        </td>
+                        {% if is_admin %}
+                        <td>
+                            {% if entry.document %}
+                            <a class="btn btn--outline btn--sm" href="/documents/{{ entry.document.id }}/edit">Editar</a>
+                            {% else %}
+                            <a class="btn btn--outline btn--sm" href="/documents/new?operation_id={{ operation.id }}">Registrar</a>
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty">No hay tipos de documento configurados para este tipo de operación.</p>
+        {% endif %}
+    </section>
+
+    <div class="grid-2">
+        <section class="section">
+            <div class="section__header">
+                <h2 class="section__title">Embarque</h2>
+                {% if operation.shipment and is_admin %}
+                <a class="btn btn--outline btn--sm" href="/shipments/{{ operation.shipment.id }}/edit">Editar</a>
+                {% endif %}
+            </div>
+            {% if operation.shipment %}
+            {% set shipment = operation.shipment %}
+            <dl class="detail">
+                <div class="detail__item"><dt class="detail__label">Transportista</dt><dd class="detail__value">{{ shipment.carrier.name if shipment.carrier else '—' }}</dd></div>
+                <div class="detail__item"><dt class="detail__label">Tracking</dt><dd class="detail__value">{{ shipment.tracking_number or '—' }}</dd></div>
+                <div class="detail__item"><dt class="detail__label">Ruta</dt><dd class="detail__value">{{ shipment.origin_port.name if shipment.origin_port else '—' }} → {{ shipment.destination_port.name if shipment.destination_port else '—' }}</dd></div>
+                <div class="detail__item"><dt class="detail__label">Salida / ETA</dt><dd class="detail__value">{{ shipment.departure_date|datefmt }} / {{ shipment.estimated_arrival|datefmt }}</dd></div>
+                <div class="detail__item"><dt class="detail__label">Estado</dt><dd class="detail__value"><span class="chip chip--{{ shipment.status|status_class }}">{{ SHIPMENT_STATUSES[shipment.status] }}</span></dd></div>
+            </dl>
+            {% if is_admin %}
+            <form method="post" action="/shipments/{{ shipment.id }}/delete" onsubmit="return confirm('¿Eliminar el embarque?');">
+                <button class="btn btn--danger btn--sm" type="submit">Eliminar embarque</button>
+            </form>
+            {% endif %}
+            {% else %}
+            <p class="empty">Sin embarque registrado.</p>
+            {% if is_admin %}
+            <details class="inline-details" open>
+                <summary>+ Registrar embarque</summary>
+                <form class="form form--compact" method="post" action="/shipments/new">
+                    <input type="hidden" name="operation_id" value="{{ operation.id }}">
+                    <div class="form__row">
+                        <div class="form__col">
+                            <label class="form__label">Transportista</label>
+                            <select class="form__input" name="carrier_id">
+                                <option value="">Sin definir</option>
+                                {% for carrier in carriers %}<option value="{{ carrier.id }}">{{ carrier.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="form__col">
+                            <label class="form__label">Tracking</label>
+                            <input class="form__input" name="tracking_number" type="text">
+                        </div>
+                    </div>
+                    <div class="form__row">
+                        <div class="form__col">
+                            <label class="form__label">Origen</label>
+                            <select class="form__input" name="origin_port_id">
+                                <option value="">Sin definir</option>
+                                {% for port in ports %}<option value="{{ port.id }}" {% if operation.origin_port_id == port.id %}selected{% endif %}>{{ port.name }} ({{ port.code }})</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="form__col">
+                            <label class="form__label">Destino</label>
+                            <select class="form__input" name="destination_port_id">
+                                <option value="">Sin definir</option>
+                                {% for port in ports %}<option value="{{ port.id }}" {% if operation.destination_port_id == port.id %}selected{% endif %}>{{ port.name }} ({{ port.code }})</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form__row">
+                        <div class="form__col">
+                            <label class="form__label">Salida</label>
+                            <input class="form__input" name="departure_date" type="date">
+                        </div>
+                        <div class="form__col">
+                            <label class="form__label">ETA</label>
+                            <input class="form__input" name="estimated_arrival" type="date">
+                        </div>
+                    </div>
+                    <label class="form__label">Estado</label>
+                    <select class="form__input" name="status">
+                        {% for code, label in SHIPMENT_STATUSES.items() %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+                    </select>
+                    <div class="form__actions"><button class="btn btn--primary btn--sm" type="submit">Guardar embarque</button></div>
+                </form>
+            </details>
+            {% endif %}
+            {% endif %}
+        </section>
+
+        <section class="section">
+            <div class="section__header">
+                <h2 class="section__title">Facturación</h2>
+                {% if is_admin %}<a class="btn btn--outline btn--sm" href="/invoices/new?operation_id={{ operation.id }}">+ Nueva factura</a>{% endif %}
+            </div>
+            {% if operation.invoices %}
+            <div class="table-wrapper">
+                <table class="table table--compact">
+                    <thead><tr><th>Factura</th><th>Total</th><th>Saldo</th><th>Estado</th><th></th></tr></thead>
+                    <tbody>
+                        {% for invoice in operation.invoices %}
+                        <tr>
+                            <td><a class="link" href="/invoices/{{ invoice.id }}">{{ invoice.number }}</a><span class="muted">Vence {{ invoice.due_date|datefmt }}</span></td>
+                            <td class="money">{{ invoice.currency.symbol if invoice.currency else symbol }} {{ invoice.total|money }}</td>
+                            <td class="money">{{ invoice.currency.symbol if invoice.currency else symbol }} {{ invoice.balance|money }}</td>
+                            <td><span class="chip chip--{{ invoice.status|status_class }}">{{ INVOICE_STATUSES[invoice.status] }}</span></td>
+                            <td><a class="btn btn--outline btn--sm" href="/invoices/{{ invoice.id }}">Abrir</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty">Sin facturas registradas.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="section">
+        <div class="section__header">
+            <h2 class="section__title">Alertas de la operación</h2>
+            <a class="btn btn--outline btn--sm" href="/alerts">Ver todas</a>
+        </div>
+        {% if open_alerts %}
+        <div class="alert-feed">
+            {% for alert in open_alerts %}
+            <article class="alert-card alert-card--{{ alert.severity|lower }}">
+                <div class="alert-card__body">
+                    <div class="alert-card__top">
+                        <span class="chip chip--{{ alert.severity|status_class }}">{{ SEVERITIES[alert.severity] }}</span>
+                        <span class="muted">{{ ALERT_TYPES[alert.type] }}</span>
+                    </div>
+                    <h3 class="alert-card__title">{{ alert.title }}</h3>
+                    <p class="alert-card__text">{{ alert.message }}</p>
+                    {% if is_admin %}
+                    <form method="post" action="/alerts/{{ alert.id }}/resolve">
+                        <button class="btn btn--outline btn--sm" type="submit">Marcar resuelta</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty">No hay alertas abiertas para esta operación.</p>
+        {% endif %}
+    </section>
 </section>
 {% endblock %}

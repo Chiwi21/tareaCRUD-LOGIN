@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}{{ spec.title }} · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page">
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow"><a class="link" href="/catalogs">Catálogos</a> / {{ spec.title }}</p>
+            <h1 class="page__title">{{ icon }} {{ spec.title }}</h1>
+            <p class="page__subtitle">{{ spec.description }}</p>
+        </div>
+        <a class="btn btn--primary" href="/catalogs/{{ spec.key }}/new">+ Nuevo {{ spec.singular }}</a>
+    </div>
+
+    <form class="filters" method="get" action="/catalogs/{{ spec.key }}">
+        <div class="filters__grid">
+            <div class="filters__field">
+                <label class="form__label" for="q">Buscar</label>
+                <input class="form__input" id="q" name="q" type="search" value="{{ q }}" placeholder="Buscar en {{ spec.title|lower }}...">
+            </div>
+            <div class="filters__actions">
+                <button class="btn btn--primary" type="submit">Buscar</button>
+                <a class="btn btn--outline" href="/catalogs/{{ spec.key }}">Limpiar</a>
+            </div>
+        </div>
+    </form>
+
+    {% if rows %}
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    {% for _attr, label in spec.columns %}<th>{{ label }}</th>{% endfor %}
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <td class="muted">{{ row['id'] }}</td>
+                    {% for value in row['values'] %}<td>{{ value }}</td>{% endfor %}
+                    <td class="table__actions">
+                        <a class="btn btn--outline btn--sm" href="/catalogs/{{ spec.key }}/{{ row['id'] }}/edit">Editar</a>
+                        <form method="post" action="/catalogs/{{ spec.key }}/{{ row['id'] }}/delete" onsubmit="return confirm('¿Eliminar este registro?');">
+                            <button class="btn btn--danger btn--sm" type="submit">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h2>Sin registros</h2>
+        <p>{% if q %}No se encontraron coincidencias para “{{ q }}”.{% else %}Este catálogo todavía está vacío.{% endif %}</p>
+        <a class="btn btn--primary" href="/catalogs/{{ spec.key }}/new">Crear {{ spec.singular }}</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

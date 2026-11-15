@@ -1,38 +1,211 @@
 {% extends "base.html" %}
 
-{% block title %}Panel principal{% endblock %}
+{% block title %}Panel · TradeLab{% endblock %}
 
 {% block content %}
 <section class="page">
-    <h1 class="page__title">Bienvenido, {{ user.username }}</h1>
-    <p class="page__subtitle">
-        Rol: <strong>{{ ROLES[user.role] }}</strong>
-        {% if user.person_type %} · {{ PERSON_TYPES[user.person_type] }}{% endif %}
-    </p>
-
-    {% if user.role == 'ADMIN' %}
-    <div class="cards">
-        <article class="card">
-            <h2 class="card__title">Operaciones</h2>
-            <p class="card__text">Cree, consulte, actualice y elimine operaciones de importación y exportación.</p>
-            <a class="btn btn--primary" href="/operations">Gestionar operaciones</a>
-        </article>
-        <article class="card">
-            <h2 class="card__title">Usuarios</h2>
-            <p class="card__text">Consulte los usuarios registrados y administre sus cuentas.</p>
-            <a class="btn btn--primary" href="/admin/users">Gestionar usuarios</a>
-        </article>
-    </div>
-    {% else %}
-    <div class="cards">
-        <article class="card">
-            <h2 class="card__title">Cuenta activa</h2>
-            <p class="card__text">
-                Su cuenta de {{ ROLES[user.role] }} está registrada correctamente.
-                Las operaciones del sistema son gestionadas por el administrador.
+    <div class="hero">
+        <div>
+            <p class="hero__eyebrow">Centro de planificación</p>
+            <h1 class="hero__title">Hola, {{ user.username }}</h1>
+            <p class="hero__subtitle">
+                {{ 'Vista global de TradeLab: operaciones, costos, documentos y alertas.' if is_admin else 'Sus operaciones asignadas, documentos y alertas.' }}
             </p>
+        </div>
+        <div class="hero__actions">
+            {% if is_admin %}
+            <a class="btn btn--primary" href="/operations/new">+ Nueva operación</a>
+            <form method="post" action="/alerts/generate">
+                <button class="btn btn--outline" type="submit">Evaluar alertas</button>
+            </form>
+            {% else %}
+            <a class="btn btn--primary" href="/operations">Ver mis operaciones</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="kpi-grid">
+        <article class="kpi">
+            <span class="kpi__label">Operaciones</span>
+            <strong class="kpi__value">{{ summary.operations_total }}</strong>
+            <span class="kpi__hint">{{ summary.operations_open }} en curso</span>
+        </article>
+        <article class="kpi">
+            <span class="kpi__label">Facturado</span>
+            <strong class="kpi__value">$ {{ summary.invoiced_total|money }}</strong>
+            <span class="kpi__hint">{{ summary.paid_total|money }} cobrado</span>
+        </article>
+        <article class="kpi kpi--warning">
+            <span class="kpi__label">Saldo pendiente</span>
+            <strong class="kpi__value">$ {{ summary.balance_total|money }}</strong>
+            <span class="kpi__hint">Por cobrar</span>
+        </article>
+        <article class="kpi {% if summary.open_alerts %}kpi--danger{% endif %}">
+            <span class="kpi__label">Alertas abiertas</span>
+            <strong class="kpi__value">{{ summary.open_alerts }}</strong>
+            <span class="kpi__hint">Requieren revisión</span>
+        </article>
+        <article class="kpi">
+            <span class="kpi__label">Empresas</span>
+            <strong class="kpi__value">{{ summary.companies }}</strong>
+            <span class="kpi__hint">Clientes y proveedores</span>
+        </article>
+        <article class="kpi">
+            <span class="kpi__label">Productos</span>
+            <strong class="kpi__value">{{ summary.products }}</strong>
+            <span class="kpi__hint">En catálogo</span>
         </article>
     </div>
-    {% endif %}
+
+    <div class="grid-2">
+        <section class="section">
+            <div class="section__header">
+                <h2 class="section__title">Operaciones por estado</h2>
+            </div>
+            {% if status_rows %}
+            <div class="bar-list">
+                {% for row in status_rows %}
+                <div class="bar-row">
+                    <span class="bar-row__label">{{ row.label }}</span>
+                    <div class="bar-row__track"><span class="bar-row__fill bar-row__fill--{{ row.status|lower }}" style="width: {{ row.percent }}%"></span></div>
+                    <span class="bar-row__value">{{ row.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty">Todavía no hay operaciones registradas.</p>
+            {% endif %}
+        </section>
+
+        <section class="section">
+            <div class="section__header">
+                <h2 class="section__title">Importaciones vs. exportaciones</h2>
+            </div>
+            {% if type_rows %}
+            <div class="bar-list">
+                {% for row in type_rows %}
+                <div class="bar-row">
+                    <span class="bar-row__label">{{ row.label }}</span>
+                    <div class="bar-row__track"><span class="bar-row__fill bar-row__fill--{{ row.type|lower }}" style="width: {{ row.percent }}%"></span></div>
+                    <span class="bar-row__value">{{ row.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty">Sin datos para graficar.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="section">
+        <div class="section__header">
+            <h2 class="section__title">Operaciones recientes</h2>
+            <a class="btn btn--outline btn--sm" href="/operations">Ver todas</a>
+        </div>
+        {% if recent_operations %}
+        <div class="table-wrapper">
+            <table class="table table--compact">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Empresa</th>
+                        <th>Tipo</th>
+                        <th>Ruta</th>
+                        <th>Estado</th>
+                        <th>Valor productos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for operation in recent_operations %}
+                    <tr>
+                        <td><a class="link" href="/operations/{{ operation.id }}">{{ operation.code }}</a></td>
+                        <td>{{ operation.company.name if operation.company else '—' }}</td>
+                        <td><span class="badge badge--{{ operation.type|lower }}">{{ OPERATION_TYPES[operation.type] }}</span></td>
+                        <td class="muted">
+                            {{ operation.origin_port.name if operation.origin_port else '—' }}
+                            →
+                            {{ operation.destination_port.name if operation.destination_port else '—' }}
+                        </td>
+                        <td><span class="chip chip--{{ operation.status|status_class }}">{{ OPERATION_STATUSES[operation.status] }}</span></td>
+                        <td class="money">{{ operation.currency.symbol if operation.currency else '$' }} {{ operation.product_subtotal|money }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty">No hay operaciones todavía.</p>
+        {% endif %}
+    </section>
+
+    <div class="grid-2">
+        <section class="section">
+            <div class="section__header">
+                <h2 class="section__title">Productos con mayor valor</h2>
+            </div>
+            {% if top_products %}
+            <ul class="rank-list">
+                {% for product in top_products %}
+                <li class="rank-list__item">
+                    <div>
+                        <strong>{{ product.name }}</strong>
+                        <span class="muted">{{ product.sku }} · {{ product.quantity|money }} unidades</span>
+                    </div>
+                    <span class="money">$ {{ product.subtotal|money }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty">Agregue productos a las operaciones para ver el ranking.</p>
+            {% endif %}
+        </section>
+
+        <section class="section">
+            <div class="section__header">
+                <h2 class="section__title">Próximos embarques</h2>
+                <a class="btn btn--outline btn--sm" href="/shipments">Ver todos</a>
+            </div>
+            {% if upcoming_shipments %}
+            <ul class="rank-list">
+                {% for shipment in upcoming_shipments %}
+                <li class="rank-list__item">
+                    <div>
+                        <strong>{{ shipment.operation.code }}</strong>
+                        <span class="muted">{{ shipment.carrier.name if shipment.carrier else 'Sin transportista' }} · ETA {{ shipment.estimated_arrival|datefmt }}</span>
+                    </div>
+                    <span class="chip chip--{{ shipment.status|status_class }}">{{ SHIPMENT_STATUSES[shipment.status] }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty">No hay embarques programados.</p>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="section">
+        <div class="section__header">
+            <h2 class="section__title">Alertas abiertas</h2>
+            <a class="btn btn--outline btn--sm" href="/alerts">Gestionar alertas</a>
+        </div>
+        {% if alerts %}
+        <div class="alert-feed">
+            {% for alert in alerts %}
+            <article class="alert-card alert-card--{{ alert.severity|lower }}">
+                <div class="alert-card__body">
+                    <div class="alert-card__top">
+                        <span class="chip chip--{{ alert.severity|status_class }}">{{ SEVERITIES[alert.severity] }}</span>
+                        {% if alert.operation %}<a class="link" href="/operations/{{ alert.operation.id }}">{{ alert.operation.code }}</a>{% endif %}
+                    </div>
+                    <h3 class="alert-card__title">{{ alert.title }}</h3>
+                    <p class="alert-card__text">{{ alert.message }}</p>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty">No hay alertas abiertas. Ejecute “Evaluar alertas” para revisar las reglas.</p>
+        {% endif %}
+    </section>
 </section>
 {% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if is_edit else 'Nuevo' }} {{ spec.singular }} · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page page--narrow">
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow"><a class="link" href="/catalogs">Catálogos</a> / <a class="link" href="/catalogs/{{ spec.key }}">{{ spec.title }}</a></p>
+            <h1 class="page__title">{{ 'Editar' if is_edit else 'Nuevo' }} {{ spec.singular }}</h1>
+            <p class="page__subtitle">{{ spec.description }}</p>
+        </div>
+        <a class="btn btn--outline" href="{{ cancel_url }}">Cancelar</a>
+    </div>
+
+    {% if errors %}
+    <div class="alert alert--error" role="alert">
+        <ul class="alert__list">
+            {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form class="form" method="post" action="{{ action_url }}">
+        {% for field in spec.fields %}
+        {% if field.kind == 'checkbox' %}
+        <label class="form__check">
+            <input type="checkbox" name="{{ field.name }}" value="1" {% if values.get(field.name) %}checked{% endif %}>
+            <span>{{ field.label }}</span>
+        </label>
+        {% else %}
+        <label class="form__label" for="{{ field.name }}">{{ field.label }}{% if field.required %} *{% endif %}</label>
+        {% if field.kind == 'textarea' %}
+        <textarea class="form__input" id="{{ field.name }}" name="{{ field.name }}" rows="3" {% if field.required %}required{% endif %}>{{ values.get(field.name, '') }}</textarea>
+        {% elif field.kind == 'select' %}
+        <select class="form__input" id="{{ field.name }}" name="{{ field.name }}" {% if field.required %}required{% endif %}>
+            <option value="">Seleccione...</option>
+            {% if field.options_source %}
+            {% for value, label in options.get(field.name, []) %}
+            <option value="{{ value }}" {% if values.get(field.name)|string == value|string %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+            {% else %}
+            {% for value, label in field.choices or () %}
+            <option value="{{ value }}" {% if values.get(field.name)|string == value|string %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+            {% endif %}
+        </select>
+        {% elif field.kind in ('decimal', 'integer') %}
+        <input class="form__input" id="{{ field.name }}" name="{{ field.name }}" type="number" step="{{ field.step if field.kind == 'decimal' else '1' }}" {% if field.required %}required{% endif %} value="{{ values.get(field.name, '') }}">
+        {% else %}
+        <input class="form__input" id="{{ field.name }}" name="{{ field.name }}" type="text" {% if field.required %}required{% endif %} value="{{ values.get(field.name, '') }}">
+        {% endif %}
+        {% if field.help_text %}<p class="form__help">{{ field.help_text }}</p>{% endif %}
+        {% endif %}
+        {% endfor %}
+
+        <div class="form__actions">
+            <button class="btn btn--primary" type="submit">{{ 'Guardar cambios' if is_edit else 'Crear registro' }}</button>
+            <a class="btn btn--outline" href="{{ cancel_url }}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

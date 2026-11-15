@@ -1,79 +1,123 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }}{% endblock %}
+{% block title %}{{ title }} · TradeLab{% endblock %}
 
 {% block content %}
 <section class="page page--narrow">
-    <h1 class="page__title">{{ title }}</h1>
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow">Operación</p>
+            <h1 class="page__title">{{ title }}</h1>
+            <p class="page__subtitle">Defina la ruta, la empresa, el responsable y las condiciones comerciales.</p>
+        </div>
+        <a class="btn btn--outline" href="{{ cancel_url }}">Cancelar</a>
+    </div>
 
     {% if errors %}
-    <div class="alert alert--error">
+    <div class="alert alert--error" role="alert">
         <ul class="alert__list">
-            {% for error in errors %}
-            <li>{{ error }}</li>
-            {% endfor %}
+            {% for error in errors %}<li>{{ error }}</li>{% endfor %}
         </ul>
     </div>
     {% endif %}
 
     <form class="form" method="post" action="{{ action_url }}">
-        <label class="form__label" for="user_id">Importador / Exportador responsable</label>
-        <select class="form__input" id="user_id" name="user_id" required>
-            <option value="">Seleccione un usuario...</option>
-            {% for account in available_users %}
-            <option value="{{ account.id }}" {% if values.get('user_id')|string == account.id|string %}selected{% endif %}>
-                {{ account.username }} — {{ ROLES[account.role] }}
-            </option>
-            {% endfor %}
-        </select>
-        {% if not available_users %}
-        <p class="form__hint">Primero registre un Importador o Exportador para poder asignar la operación.</p>
-        {% endif %}
-
-        <label class="form__label" for="type">Tipo de operación</label>
-        <select class="form__input" id="type" name="type" required>
-            <option value="">Seleccione...</option>
-            <option value="IMPORT" {% if values.get('type') == 'IMPORT' %}selected{% endif %}>Importación</option>
-            <option value="EXPORT" {% if values.get('type') == 'EXPORT' %}selected{% endif %}>Exportación</option>
-        </select>
-
-        <label class="form__label" for="product">Producto</label>
-        <input class="form__input" id="product" name="product" type="text"
-               value="{{ values.get('product', '') }}" required>
-
         <div class="form__row">
             <div class="form__col">
-                <label class="form__label" for="quantity">Cantidad</label>
-                <input class="form__input" id="quantity" name="quantity" type="number" min="1"
-                       value="{{ values.get('quantity', '') }}" required>
-            </div>
-            <div class="form__col">
-                <label class="form__label" for="country">País</label>
-                <input class="form__input" id="country" name="country" type="text"
-                       value="{{ values.get('country', '') }}" required>
-            </div>
-        </div>
-
-        <div class="form__row">
-            <div class="form__col">
-                <label class="form__label" for="date">Fecha</label>
-                <input class="form__input" id="date" name="date" type="date"
-                       value="{{ values.get('date', '') }}" required>
+                <label class="form__label" for="type">Tipo de operación</label>
+                <select class="form__input" id="type" name="type" required>
+                    <option value="">Seleccione...</option>
+                    {% for code, label in OPERATION_TYPES.items() %}
+                    <option value="{{ code }}" {% if values.get('type') == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="form__col">
                 <label class="form__label" for="status">Estado</label>
                 <select class="form__input" id="status" name="status" required>
-                    <option value="">Seleccione...</option>
-                    <option value="PENDING" {% if values.get('status') == 'PENDING' %}selected{% endif %}>Pendiente</option>
-                    <option value="IN_PROGRESS" {% if values.get('status') == 'IN_PROGRESS' %}selected{% endif %}>En proceso</option>
-                    <option value="DONE" {% if values.get('status') == 'DONE' %}selected{% endif %}>Completada</option>
+                    {% for code, label in OPERATION_STATUSES.items() %}
+                    <option value="{{ code }}" {% if values.get('status') == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
                 </select>
             </div>
         </div>
 
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="company_id">Empresa</label>
+                <select class="form__input" id="company_id" name="company_id">
+                    <option value="">Sin empresa</option>
+                    {% for company in companies %}
+                    <option value="{{ company.id }}" {% if values.get('company_id')|string == company.id|string %}selected{% endif %}>{{ company.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form__col">
+                <label class="form__label" for="user_id">Responsable</label>
+                <select class="form__input" id="user_id" name="user_id">
+                    <option value="">Sin asignar</option>
+                    {% for account in available_users %}
+                    <option value="{{ account.id }}" {% if values.get('user_id')|string == account.id|string %}selected{% endif %}>{{ account.username }} — {{ ROLES[account.role] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="operation_date">Fecha de operación</label>
+                <input class="form__input" id="operation_date" name="operation_date" type="date" required value="{{ values.get('operation_date', '') }}">
+            </div>
+            <div class="form__col">
+                <label class="form__label" for="currency_id">Moneda</label>
+                <select class="form__input" id="currency_id" name="currency_id">
+                    <option value="">Sin moneda</option>
+                    {% for currency in currencies %}
+                    <option value="{{ currency.id }}" {% if values.get('currency_id')|string == currency.id|string %}selected{% endif %}>{{ currency.code }} — {{ currency.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="origin_port_id">Puerto / aeropuerto de origen</label>
+                <select class="form__input" id="origin_port_id" name="origin_port_id">
+                    <option value="">Sin definir</option>
+                    {% for port in ports %}
+                    <option value="{{ port.id }}" {% if values.get('origin_port_id')|string == port.id|string %}selected{% endif %}>{{ port.name }} ({{ port.code }}){% if port.country %} · {{ port.country.name }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form__col">
+                <label class="form__label" for="destination_port_id">Puerto / aeropuerto de destino</label>
+                <select class="form__input" id="destination_port_id" name="destination_port_id">
+                    <option value="">Sin definir</option>
+                    {% for port in ports %}
+                    <option value="{{ port.id }}" {% if values.get('destination_port_id')|string == port.id|string %}selected{% endif %}>{{ port.name }} ({{ port.code }}){% if port.country %} · {{ port.country.name }}{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="incoterm_id">Incoterm</label>
+                <select class="form__input" id="incoterm_id" name="incoterm_id">
+                    <option value="">Sin definir</option>
+                    {% for incoterm in incoterms %}
+                    <option value="{{ incoterm.id }}" {% if values.get('incoterm_id')|string == incoterm.id|string %}selected{% endif %}>{{ incoterm.code }} — {{ incoterm.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <label class="form__label" for="notes">Notas</label>
+        <textarea class="form__input" id="notes" name="notes" rows="4" placeholder="Observaciones, acuerdos o condiciones especiales...">{{ values.get('notes', '') }}</textarea>
+
         <div class="form__actions">
-            <button class="btn btn--primary" type="submit">Guardar</button>
-            <a class="btn btn--outline" href="/operations">Cancelar</a>
+            <button class="btn btn--primary" type="submit">Guardar operación</button>
+            <a class="btn btn--outline" href="{{ cancel_url }}">Cancelar</a>
         </div>
     </form>
 </section>

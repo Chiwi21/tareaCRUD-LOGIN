@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Detalle de usuario{% endblock %}
+{% block title %}Detalle de usuario · TradeLab{% endblock %}
 
 {% block content %}
 <section class="page">
     <div class="page__header">
-        <h1 class="page__title">Usuario: {{ target.username }}</h1>
+        <div>
+            <p class="page__eyebrow">Usuario</p>
+            <h1 class="page__title">{{ target.username }}</h1>
+            <p class="page__subtitle">{{ ROLES[target.role] }}{% if target.company %} · {{ target.company.name }}{% endif %}</p>
+        </div>
         <div class="page__actions">
             {% if target.role != 'ADMIN' %}
             <a class="btn btn--primary" href="/admin/users/{{ target.id }}/edit">Editar usuario</a>
@@ -14,7 +18,7 @@
         </div>
     </div>
 
-    <dl class="detail">
+    <dl class="detail detail--grid">
         <div class="detail__item">
             <dt class="detail__label">ID</dt>
             <dd class="detail__value">{{ target.id }}</dd>
@@ -26,6 +30,10 @@
         <div class="detail__item">
             <dt class="detail__label">Rol</dt>
             <dd class="detail__value"><span class="badge">{{ ROLES[target.role] }}</span></dd>
+        </div>
+        <div class="detail__item">
+            <dt class="detail__label">Empresa</dt>
+            <dd class="detail__value">{{ target.company.name if target.company else '—' }}</dd>
         </div>
         <div class="detail__item">
             <dt class="detail__label">Tipo de persona</dt>
@@ -48,10 +56,41 @@
             <dd class="detail__value">{{ target.razon_social or '—' }}</dd>
         </div>
         <div class="detail__item">
+            <dt class="detail__label">Activo</dt>
+            <dd class="detail__value">{{ 'Sí' if target.is_active else 'No' }}</dd>
+        </div>
+        <div class="detail__item">
             <dt class="detail__label">Fecha de registro</dt>
-            <dd class="detail__value">{{ target.created_at.strftime('%Y-%m-%d %H:%M') if target.created_at else '—' }}</dd>
+            <dd class="detail__value">{{ target.created_at|datefmt('%Y-%m-%d %H:%M') }}</dd>
         </div>
     </dl>
+
+    <section class="section">
+        <div class="section__header">
+            <h2 class="section__title">Operaciones asignadas</h2>
+            <span class="section__meta">{{ operations|length }}</span>
+        </div>
+        {% if operations %}
+        <div class="table-wrapper">
+            <table class="table table--compact">
+                <thead><tr><th>Código</th><th>Tipo</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+                <tbody>
+                    {% for operation in operations %}
+                    <tr>
+                        <td>{{ operation.code }}</td>
+                        <td>{{ OPERATION_TYPES[operation.type] }}</td>
+                        <td>{{ operation.operation_date|datefmt }}</td>
+                        <td><span class="chip chip--{{ operation.status|status_class }}">{{ OPERATION_STATUSES[operation.status] }}</span></td>
+                        <td><a class="btn btn--outline btn--sm" href="/operations/{{ operation.id }}">Abrir</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty">Este usuario no tiene operaciones asignadas.</p>
+        {% endif %}
+    </section>
 
     {% if target.role != 'ADMIN' %}
     <form method="post" action="/admin/users/{{ target.id }}/delete"

@@ -1,0 +1,3 @@
+# Dependencias solo para pruebas locales (TestClient de Starlette).
+-r requirements.txt
+httpx2==2.16.0

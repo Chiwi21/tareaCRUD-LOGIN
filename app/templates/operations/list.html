@@ -1,56 +1,115 @@
 {% extends "base.html" %}
 
-{% block title %}Operaciones{% endblock %}
+{% block title %}Operaciones · TradeLab{% endblock %}
 
 {% block content %}
 <section class="page">
     <div class="page__header">
-        <h1 class="page__title">Operaciones de importación / exportación</h1>
-        <a class="btn btn--primary" href="/operations/new">Nueva operación</a>
+        <div>
+            <p class="page__eyebrow">Planificación</p>
+            <h1 class="page__title">Operaciones de comercio exterior</h1>
+            <p class="page__subtitle">Importaciones y exportaciones con productos, escenarios de costo, documentos y seguimiento.</p>
+        </div>
+        {% if is_admin %}
+        <a class="btn btn--primary" href="/operations/new">+ Nueva operación</a>
+        {% endif %}
     </div>
+
+    <form class="filters" method="get" action="/operations">
+        <div class="filters__grid">
+            <div class="filters__field">
+                <label class="form__label" for="q">Buscar</label>
+                <input class="form__input" id="q" name="q" type="search" value="{{ q }}" placeholder="Código, empresa, usuario...">
+            </div>
+            <div class="filters__field">
+                <label class="form__label" for="status">Estado</label>
+                <select class="form__input" id="status" name="status">
+                    <option value="">Todos</option>
+                    {% for code, label in OPERATION_STATUSES.items() %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filters__field">
+                <label class="form__label" for="type">Tipo</label>
+                <select class="form__input" id="type" name="type">
+                    <option value="">Todos</option>
+                    {% for code, label in OPERATION_TYPES.items() %}
+                    <option value="{{ code }}" {% if type_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if is_admin %}
+            <div class="filters__field">
+                <label class="form__label" for="company_id">Empresa</label>
+                <select class="form__input" id="company_id" name="company_id">
+                    <option value="">Todas</option>
+                    {% for company in companies %}
+                    <option value="{{ company.id }}" {% if company_id|string == company.id|string %}selected{% endif %}>{{ company.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="filters__actions">
+                <button class="btn btn--primary" type="submit">Filtrar</button>
+                <a class="btn btn--outline" href="/operations">Limpiar</a>
+            </div>
+        </div>
+    </form>
 
     {% if operations %}
     <div class="table-wrapper">
         <table class="table">
             <thead>
                 <tr>
-                    <th>ID</th>
-                    <th>Usuario</th>
+                    <th>Código</th>
+                    <th>Empresa</th>
+                    <th>Responsable</th>
                     <th>Tipo</th>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>País</th>
+                    <th>Ruta</th>
                     <th>Fecha</th>
+                    <th>Ítems</th>
+                    <th>Valor productos</th>
+                    <th>Escenario</th>
                     <th>Estado</th>
-                    <th>Acciones</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 {% for operation in operations %}
                 <tr>
-                    <td>{{ operation.id }}</td>
+                    <td><a class="link link--strong" href="/operations/{{ operation.id }}">{{ operation.code }}</a></td>
+                    <td>{{ operation.company.name if operation.company else '—' }}</td>
                     <td>{{ operation.user.username if operation.user else 'Sin asignar' }}</td>
                     <td><span class="badge badge--{{ operation.type|lower }}">{{ OPERATION_TYPES[operation.type] }}</span></td>
-                    <td>{{ operation.product }}</td>
-                    <td>{{ operation.quantity }}</td>
-                    <td>{{ operation.country }}</td>
-                    <td>{{ operation.date.strftime('%Y-%m-%d') }}</td>
-                    <td>{{ OPERATION_STATUSES[operation.status] }}</td>
-                    <td class="table__actions">
-                        <a class="btn btn--outline btn--sm" href="/operations/{{ operation.id }}">Ver</a>
-                        <a class="btn btn--outline btn--sm" href="/operations/{{ operation.id }}/edit">Editar</a>
-                        <form method="post" action="/operations/{{ operation.id }}/delete"
-                              onsubmit="return confirm('¿Eliminar la operación #{{ operation.id }}?');">
-                            <button class="btn btn--danger btn--sm" type="submit">Eliminar</button>
-                        </form>
+                    <td class="muted">
+                        {{ operation.origin_port.code if operation.origin_port else '—' }}
+                        →
+                        {{ operation.destination_port.code if operation.destination_port else '—' }}
                     </td>
+                    <td>{{ operation.operation_date|datefmt }}</td>
+                    <td>{{ operation.items|length }}</td>
+                    <td class="money">{{ operation.currency.symbol if operation.currency else '$' }} {{ operation.product_subtotal|money }}</td>
+                    <td class="money">
+                        {% if operation.selected_scenario %}
+                        {{ operation.currency.symbol if operation.currency else '$' }} {{ operation.selected_scenario.total|money }}
+                        {% else %}
+                        <span class="muted">Sin seleccionar</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="chip chip--{{ operation.status|status_class }}">{{ OPERATION_STATUSES[operation.status] }}</span></td>
+                    <td><a class="btn btn--outline btn--sm" href="/operations/{{ operation.id }}">Abrir</a></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     {% else %}
-    <p class="alert alert--info">Aún no hay operaciones registradas. Cree la primera con el botón "Nueva operación".</p>
+    <div class="empty-state">
+        <h2>No hay operaciones</h2>
+        <p>Cree la primera operación para comenzar a planificar costos, documentos y embarques.</p>
+        {% if is_admin %}<a class="btn btn--primary" href="/operations/new">Crear operación</a>{% endif %}
+    </div>
     {% endif %}
 </section>
 {% endblock %}

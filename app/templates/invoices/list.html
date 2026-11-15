@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Facturación · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page">
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow">Finanzas</p>
+            <h1 class="page__title">Facturación</h1>
+            <p class="page__subtitle">Facturas por operación, pagos recibidos y saldos pendientes.</p>
+        </div>
+        <a class="btn btn--primary" href="/invoices/new">+ Nueva factura</a>
+    </div>
+
+    <form class="filters" method="get" action="/invoices">
+        <div class="filters__grid">
+            <div class="filters__field">
+                <label class="form__label" for="q">Buscar</label>
+                <input class="form__input" id="q" name="q" type="search" value="{{ q }}" placeholder="Número de factura u operación...">
+            </div>
+            <div class="filters__field">
+                <label class="form__label" for="status">Estado</label>
+                <select class="form__input" id="status" name="status">
+                    <option value="">Todos</option>
+                    {% for code, label in INVOICE_STATUSES.items() %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filters__actions">
+                <button class="btn btn--primary" type="submit">Filtrar</button>
+                <a class="btn btn--outline" href="/invoices">Limpiar</a>
+            </div>
+        </div>
+    </form>
+
+    {% if invoices %}
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Factura</th>
+                    <th>Operación</th>
+                    <th>Emisión</th>
+                    <th>Vence</th>
+                    <th>Total</th>
+                    <th>Pagado</th>
+                    <th>Saldo</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td><a class="link link--strong" href="/invoices/{{ invoice.id }}">{{ invoice.number }}</a></td>
+                    <td><a class="link" href="/operations/{{ invoice.operation_id }}">{{ invoice.operation.code if invoice.operation else '—' }}</a></td>
+                    <td>{{ invoice.issue_date|datefmt }}</td>
+                    <td>{{ invoice.due_date|datefmt }}</td>
+                    <td class="money">{{ invoice.currency.symbol if invoice.currency else '$' }} {{ invoice.total|money }}</td>
+                    <td class="money">{{ invoice.currency.symbol if invoice.currency else '$' }} {{ invoice.paid_amount|money }}</td>
+                    <td class="money">{{ invoice.currency.symbol if invoice.currency else '$' }} {{ invoice.balance|money }}</td>
+                    <td><span class="chip chip--{{ invoice.status|status_class }}">{{ INVOICE_STATUSES[invoice.status] }}</span></td>
+                    <td class="table__actions">
+                        <a class="btn btn--outline btn--sm" href="/invoices/{{ invoice.id }}">Abrir</a>
+                        <form method="post" action="/invoices/{{ invoice.id }}/delete" onsubmit="return confirm('¿Eliminar la factura {{ invoice.number }} y sus pagos?');">
+                            <button class="btn btn--danger btn--sm" type="submit">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h2>Sin facturas</h2>
+        <p>Genere una factura a partir del valor de los productos de una operación y registre sus pagos.</p>
+        <a class="btn btn--primary" href="/invoices/new">Crear factura</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

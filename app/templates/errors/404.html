@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Página no encontrada · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page page--center">
+    <p class="error-code">404</p>
+    <h1 class="page__title">Página no encontrada</h1>
+    <p class="page__subtitle">{{ detail or 'El recurso que busca no existe o fue eliminado.' }}</p>
+    <div class="page__actions page__actions--center">
+        <a class="btn btn--primary" href="/dashboard">Volver al panel</a>
+        <a class="btn btn--outline" href="/operations">Ver operaciones</a>
+    </div>
+</section>
+{% endblock %}

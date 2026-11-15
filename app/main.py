@@ -4,19 +4,32 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import BASE_DIR, SECRET_KEY, SESSION_MAX_AGE
-from app.controllers import (
-    admin_controller,
-    auth_controller,
-    dashboard_controller,
-    operation_controller,
+from app.database import init_database
+from app.routers import (
+    admin,
+    alerts,
+    audit,
+    auth,
+    billing,
+    catalogs,
+    costs,
+    dashboard,
+    documents,
+    logistics,
+    operations,
 )
-from app.database import Base, engine, ensure_operation_user_column
 from app.templating import templates
 
-Base.metadata.create_all(bind=engine)
-ensure_operation_user_column()
+init_database()
 
-app = FastAPI(title="Sistema Import/Export - Tarea 3 CRUD/Login")
+app = FastAPI(
+    title="TradeLab — Planificación de comercio exterior",
+    description=(
+        "Sistema de planificación de importaciones y exportaciones: operaciones, "
+        "escenarios de costo, documentos, embarques, facturación y alertas."
+    ),
+    version="2.0.0",
+)
 
 app.add_middleware(
     SessionMiddleware,
@@ -44,6 +57,14 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             status_code=403,
         )
 
+    if exc.status_code == 404 and not is_api:
+        return templates.TemplateResponse(
+            request,
+            "errors/404.html",
+            {"detail": exc.detail},
+            status_code=404,
+        )
+
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
 
@@ -54,7 +75,19 @@ def root(request: Request):
     return RedirectResponse("/login", status_code=303)
 
 
-app.include_router(auth_controller.router)
-app.include_router(dashboard_controller.router)
-app.include_router(operation_controller.router)
-app.include_router(admin_controller.router)
+@app.get("/health")
+def health():
+    return {"status": "ok", "app": "TradeLab"}
+
+
+app.include_router(auth.router)
+app.include_router(dashboard.router)
+app.include_router(operations.router)
+app.include_router(costs.router)
+app.include_router(documents.router)
+app.include_router(logistics.router)
+app.include_router(billing.router)
+app.include_router(alerts.router)
+app.include_router(catalogs.router)
+app.include_router(admin.router)
+app.include_router(audit.router)

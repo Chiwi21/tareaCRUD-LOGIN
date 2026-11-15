@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Usuarios registrados{% endblock %}
+{% block title %}Usuarios registrados · TradeLab{% endblock %}
 
 {% block content %}
 <section class="page">
     <div class="page__header">
-        <h1 class="page__title">Usuarios registrados</h1>
+        <div>
+            <p class="page__eyebrow">Administración</p>
+            <h1 class="page__title">Usuarios registrados</h1>
+            <p class="page__subtitle">Cuentas de importadores y exportadores vinculadas a empresas.</p>
+        </div>
         <a class="btn btn--primary" href="/admin/users/new">Nuevo usuario</a>
     </div>
 
@@ -24,8 +28,10 @@
                     <th>ID</th>
                     <th>Usuario</th>
                     <th>Rol</th>
+                    <th>Empresa</th>
                     <th>Tipo de persona</th>
                     <th>Identificación</th>
+                    <th>Activo</th>
                     <th>Registro</th>
                     <th>Acciones</th>
                 </tr>
@@ -33,12 +39,14 @@
             <tbody>
                 {% for u in users %}
                 <tr>
-                    <td>{{ u.id }}</td>
-                    <td>{{ u.username }}</td>
+                    <td class="muted">{{ u.id }}</td>
+                    <td><strong>{{ u.username }}</strong></td>
                     <td><span class="badge">{{ ROLES[u.role] }}</span></td>
+                    <td>{{ u.company.name if u.company else '—' }}</td>
                     <td>{{ PERSON_TYPES[u.person_type] if u.person_type else '—' }}</td>
                     <td>{{ u.cedula or u.ruc or '—' }}</td>
-                    <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') if u.created_at else '—' }}</td>
+                    <td><span class="chip chip--{{ 'success' if u.is_active else 'danger' }}">{{ 'Sí' if u.is_active else 'No' }}</span></td>
+                    <td class="muted">{{ u.created_at|datefmt('%Y-%m-%d %H:%M') }}</td>
                     <td class="table__actions">
                         <a class="btn btn--outline btn--sm" href="/admin/users/{{ u.id }}">Ver</a>
                         {% if u.role != 'ADMIN' %}

@@ -3,24 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sistema de gestión de importaciones y exportaciones con autenticación y CRUD - Tarea 3">
-    <title>{% block title %}Import/Export System{% endblock %}</title>
+    <meta name="description" content="TradeLab: planificación de importaciones y exportaciones con escenarios de costo, documentos, embarques y alertas.">
+    <title>{% block title %}TradeLab{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/tradelab.css">
 </head>
 <body>
     <header class="header">
         <div class="header__container">
-            <a class="header__brand" href="/">Import<span>/</span>Export</a>
+            <a class="header__brand" href="/dashboard">
+                <span class="header__logo">TL</span>
+                <span class="header__name">Trade<span>Lab</span></span>
+            </a>
             {% if user %}
             <nav class="nav">
-                <a class="nav__link" href="/dashboard">Panel</a>
+                <a class="nav__link {% if request.url.path == '/dashboard' %}nav__link--active{% endif %}" href="/dashboard">Panel</a>
+                <a class="nav__link {% if request.url.path.startswith('/operations') %}nav__link--active{% endif %}" href="/operations">Operaciones</a>
                 {% if user.role == 'ADMIN' %}
-                <a class="nav__link" href="/operations">Operaciones</a>
-                <a class="nav__link" href="/admin/users">Usuarios</a>
+                <a class="nav__link {% if request.url.path.startswith('/catalogs') %}nav__link--active{% endif %}" href="/catalogs">Catálogos</a>
+                <a class="nav__link {% if request.url.path.startswith('/documents') %}nav__link--active{% endif %}" href="/documents">Documentos</a>
+                <a class="nav__link {% if request.url.path.startswith('/shipments') %}nav__link--active{% endif %}" href="/shipments">Embarques</a>
+                <a class="nav__link {% if request.url.path.startswith('/invoices') %}nav__link--active{% endif %}" href="/invoices">Facturación</a>
+                <a class="nav__link {% if request.url.path.startswith('/alerts') %}nav__link--active{% endif %}" href="/alerts">Alertas</a>
+                <a class="nav__link {% if request.url.path.startswith('/admin/audit') %}nav__link--active{% endif %}" href="/admin/audit">Auditoría</a>
+                <a class="nav__link {% if request.url.path.startswith('/admin/users') %}nav__link--active{% endif %}" href="/admin/users">Usuarios</a>
                 {% endif %}
-                <span class="nav__user">{{ user.username }} · {{ ROLES[user.role] }}</span>
+                <span class="nav__user">
+                    <span class="nav__avatar">{{ user.username[:1]|upper }}</span>
+                    {{ user.username }} · {{ ROLES[user.role] }}
+                </span>
                 <form class="nav__logout" method="post" action="/logout">
-                    <button class="btn btn--outline btn--sm" type="submit">Cerrar sesión</button>
+                    <button class="btn btn--ghost btn--sm" type="submit">Salir</button>
                 </form>
             </nav>
             {% endif %}
@@ -28,11 +41,17 @@
     </header>
 
     <main class="main">
+        {% set flashes = get_flashed_messages(request) %}
+        {% for message in flashes %}
+        <div class="alert alert--{{ message.category }}" role="alert">{{ message.message }}</div>
+        {% endfor %}
         {% block content %}{% endblock %}
     </main>
 
     <footer class="footer">
-        <p>Ingeniería Web · Tarea 3: CRUD / Login con MVC · FastAPI + SQLite + Jinja2</p>
+        <p><strong>TradeLab</strong> · Planificación de comercio exterior · Ingeniería Web</p>
+        <p>FastAPI + SQLAlchemy + Jinja2 · SQLite local / PostgreSQL Neon</p>
     </footer>
+    <script src="/static/js/app.js"></script>
 </body>
 </html>

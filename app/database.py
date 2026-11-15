@@ -1,7 +1,8 @@
 import os
+from contextlib import contextmanager
 
-from sqlalchemy import create_engine, event, inspect, text
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy import create_engine, event, inspect
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import BASE_DIR
 
@@ -42,22 +43,43 @@ def get_db():
         db.close()
 
 
-def ensure_operation_user_column() -> None:
-    """Add the optional owner FK to databases created by the previous Core version."""
+@contextmanager
+def session_scope() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def legacy_operations_table() -> bool:
+    """True si la base todavía tiene el esquema antiguo de operaciones."""
     inspector = inspect(engine)
     if "operations" not in inspector.get_table_names():
-        return
-
+        return False
     columns = {column["name"] for column in inspector.get_columns("operations")}
-    with engine.begin() as connection:
-        if "user_id" not in columns:
-            connection.execute(
-                text(
-                    "ALTER TABLE operations "
-                    "ADD COLUMN user_id INTEGER "
-                    "REFERENCES users(id) ON DELETE RESTRICT"
-                )
-            )
-        connection.execute(
-            text("CREATE INDEX IF NOT EXISTS ix_operations_user_id ON operations(user_id)")
+    return "product" in columns and "code" not in columns
+
+
+def init_database() -> None:
+    """Crea las tablas y verifica que no se esté usando el esquema anterior."""
+    from app import models  # noqa: F401  (registra los 22 modelos en Base.metadata)
+
+    if legacy_operations_table():
+        raise RuntimeError(
+            "Se detectó el esquema antiguo de operaciones. "
+            "Ejecute primero: python migrate_legacy.py"
         )
+    Base.metadata.create_all(bind=engine)
+
+
+def reset_database() -> None:
+    """Elimina todas las tablas y las vuelve a crear (solo para desarrollo)."""
+    from app import models  # noqa: F401
+
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)

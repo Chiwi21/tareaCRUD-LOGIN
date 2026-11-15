@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Catálogos · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page">
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow">Administración</p>
+            <h1 class="page__title">Catálogos maestros</h1>
+            <p class="page__subtitle">Datos de referencia que alimentan operaciones, costos, documentos y embarques.</p>
+        </div>
+    </div>
+
+    <div class="catalog-grid">
+        {% for spec in specs %}
+        <a class="catalog-card" href="/catalogs/{{ spec.key }}">
+            <span class="catalog-card__icon">{{ icons.get(spec.key, '📁') }}</span>
+            <div class="catalog-card__body">
+                <h2 class="catalog-card__title">{{ spec.title }}</h2>
+                <p class="catalog-card__text">{{ spec.description }}</p>
+            </div>
+            <span class="catalog-card__count">{{ counts.get(spec.key, 0) }}</span>
+        </a>
+        {% endfor %}
+    </div>
+
+    <section class="section section--note">
+        <h2 class="section__title">¿Cómo funciona?</h2>
+        <p>Cada catálogo comparte la misma plantilla y el mismo servicio validado. Agregar un catálogo nuevo solo requiere declarar sus campos en <code>app/catalog_specs.py</code>: no se duplican rutas, formularios ni validaciones.</p>
+    </section>
+</section>
+{% endblock %}

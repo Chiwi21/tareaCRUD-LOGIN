@@ -1,12 +1,18 @@
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.constants import ROLE_ADMIN
 from app.database import get_db
-from app.models import Operation, User
+from app.dependencies import get_audit_service
+from app.flash import flash
+from app.models import Company, Operation, User
 from app.security import hash_password, require_admin
+from app.services.audit_service import AuditService
 from app.templating import templates
 from app.user_validation import validate_password, validate_user_profile
 
@@ -30,6 +36,9 @@ def serialize_user(user: User) -> dict:
         "cedula": user.cedula,
         "ruc": user.ruc,
         "razon_social": user.razon_social,
+        "company_id": user.company_id,
+        "company_name": user.company.name if user.company else None,
+        "is_active": user.is_active,
         "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 
@@ -42,6 +51,7 @@ def render_user_form(
     target_id: int | None = None,
 ):
     editing = target_id is not None
+    companies = request.state.db.query(Company).order_by(Company.name).all()
     return templates.TemplateResponse(
         request,
         "admin/user_form.html",
@@ -50,6 +60,7 @@ def render_user_form(
             "values": values,
             "errors": errors or [],
             "is_edit": editing,
+            "companies": companies,
             "title": "Editar usuario" if editing else "Nuevo usuario",
             "action_url": f"/admin/users/{target_id}/edit" if editing else "/admin/users/new",
             "cancel_url": f"/admin/users/{target_id}" if editing else "/admin/users",
@@ -59,7 +70,11 @@ def render_user_form(
 
 
 def values_without_form_role(values: dict) -> dict:
-    return {field: value for field, value in values.items() if field != "user_type"}
+    return {
+        field: value
+        for field, value in values.items()
+        if field not in ("user_type", "company_id", "is_active")
+    }
 
 
 def get_editable_user_or_403(db: Session, user_id: int) -> User:
@@ -72,33 +87,35 @@ def get_editable_user_or_403(db: Session, user_id: int) -> User:
     return target
 
 
+def _company_id(raw: str) -> tuple[int | None, list[str]]:
+    if not raw:
+        return None, []
+    try:
+        return int(raw), []
+    except ValueError:
+        return None, ["La empresa seleccionada no es válida."]
+
+
 @router.get("/admin/users")
 def list_users(
     request: Request,
-    created: int = 0,
-    updated: int = 0,
-    deleted: int = 0,
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    users = db.query(User).order_by(User.id).all()
-    success = None
-    if created:
-        success = "Usuario creado correctamente."
-    elif updated:
-        success = "Usuario actualizado correctamente."
-    elif deleted:
-        success = "Usuario eliminado correctamente."
+    users = db.query(User).options(joinedload(User.company)).order_by(User.id).all()
     return templates.TemplateResponse(
-        request,
-        "admin/users.html",
-        {"user": user, "users": users, "success": success},
+        request, "admin/users.html", {"user": user, "users": users}
     )
 
 
 @router.get("/admin/users/new")
-def new_user_form(request: Request, user: User = Depends(require_admin)):
-    return render_user_form(request, user, {})
+def new_user_form(
+    request: Request,
+    user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    request.state.db = db
+    return render_user_form(request, user, {"is_active": True})
 
 
 @router.post("/admin/users/new")
@@ -113,8 +130,11 @@ def create_user_html(
     cedula: str = Form(""),
     ruc: str = Form(""),
     razon_social: str = Form(""),
+    company_id: str = Form(""),
+    is_active: str = Form(""),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
+    audit: AuditService = Depends(get_audit_service),
 ):
     values, errors = validate_user_profile(
         db,
@@ -127,20 +147,33 @@ def create_user_html(
         razon_social=razon_social,
     )
     errors.extend(validate_password(password, confirm_password, required=True))
-    values["user_type"] = user_type
+    company_id_value, company_errors = _company_id(company_id)
+    errors.extend(company_errors)
+    if company_id_value is not None and db.get(Company, company_id_value) is None:
+        errors.append("La empresa seleccionada no existe.")
+    values.update({"user_type": user_type, "company_id": company_id or "", "is_active": bool(is_active)})
+    request.state.db = db
     if errors:
         return render_user_form(request, admin, values, errors)
 
-    account = User(password_hash=hash_password(password), **values_without_form_role(values))
+    account = User(
+        password_hash=hash_password(password),
+        company_id=company_id_value,
+        is_active=bool(is_active),
+        **values_without_form_role(values),
+    )
     db.add(account)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        errors = ["El usuario, la cédula o el RUC ya están registrados."]
-        return render_user_form(request, admin, values, errors)
-
-    return RedirectResponse("/admin/users?created=1", status_code=status.HTTP_303_SEE_OTHER)
+        return render_user_form(
+            request, admin, values, ["El usuario, la cédula o el RUC ya están registrados."]
+        )
+    db.refresh(account)
+    audit.log(admin.id, "CREATE", "users", account.id, f"Usuario {account.username} creado")
+    flash(request, "Usuario creado correctamente.", "success")
+    return RedirectResponse("/admin/users", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/admin/users/{user_id}/edit")
@@ -151,6 +184,7 @@ def edit_user_form(
     db: Session = Depends(get_db),
 ):
     target = get_editable_user_or_403(db, user_id)
+    request.state.db = db
     values = {
         "user_type": target.role,
         "person_type": target.person_type,
@@ -159,6 +193,8 @@ def edit_user_form(
         "cedula": target.cedula or "",
         "ruc": target.ruc or "",
         "razon_social": target.razon_social or "",
+        "company_id": str(target.company_id or ""),
+        "is_active": target.is_active,
     }
     return render_user_form(request, admin, values, target_id=target.id)
 
@@ -176,8 +212,11 @@ def update_user_html(
     cedula: str = Form(""),
     ruc: str = Form(""),
     razon_social: str = Form(""),
+    company_id: str = Form(""),
+    is_active: str = Form(""),
     admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
+    audit: AuditService = Depends(get_audit_service),
 ):
     target = get_editable_user_or_403(db, user_id)
     values, errors = validate_user_profile(
@@ -192,23 +231,31 @@ def update_user_html(
         exclude_user_id=target.id,
     )
     errors.extend(validate_password(password, confirm_password, required=False))
-    values["user_type"] = user_type
+    company_id_value, company_errors = _company_id(company_id)
+    errors.extend(company_errors)
+    if company_id_value is not None and db.get(Company, company_id_value) is None:
+        errors.append("La empresa seleccionada no existe.")
+    values.update({"user_type": user_type, "company_id": company_id or "", "is_active": bool(is_active)})
+    request.state.db = db
     if errors:
         return render_user_form(request, admin, values, errors, target_id=target.id)
 
     for field, value in values_without_form_role(values).items():
         setattr(target, field, value)
+    target.company_id = company_id_value
+    target.is_active = bool(is_active)
     if password:
         target.password_hash = hash_password(password)
-
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        errors = ["El usuario, la cédula o el RUC ya están registrados."]
-        return render_user_form(request, admin, values, errors, target_id=target.id)
-
-    return RedirectResponse("/admin/users?updated=1", status_code=status.HTTP_303_SEE_OTHER)
+        return render_user_form(
+            request, admin, values, ["El usuario, la cédula o el RUC ya están registrados."], target.id
+        )
+    audit.log(admin.id, "UPDATE", "users", target.id, f"Usuario {target.username} actualizado")
+    flash(request, "Usuario actualizado correctamente.", "success")
+    return RedirectResponse("/admin/users", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/admin/users/{user_id}")
@@ -218,8 +265,13 @@ def user_detail(
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    target = get_user_or_404(db, user_id)
-    return templates.TemplateResponse(request, "admin/user_detail.html", {"user": user, "target": target})
+    target = db.query(User).options(joinedload(User.company)).filter(User.id == user_id).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    operations = db.query(Operation).filter(Operation.user_id == target.id).order_by(Operation.id.desc()).all()
+    return templates.TemplateResponse(
+        request, "admin/user_detail.html", {"user": user, "target": target, "operations": operations}
+    )
 
 
 @router.post("/admin/users/{user_id}/delete")
@@ -228,40 +280,26 @@ def delete_user_html(
     user_id: int,
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
+    audit: AuditService = Depends(get_audit_service),
 ):
     target = get_user_or_404(db, user_id)
     if target.id == user.id:
-        users = db.query(User).order_by(User.id).all()
-        return templates.TemplateResponse(
-            request,
-            "admin/users.html",
-            {
-                "user": user,
-                "users": users,
-                "error": "No puede eliminar su propia cuenta de administrador.",
-            },
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
+        flash(request, "No puede eliminar su propia cuenta de administrador.", "error")
+        return RedirectResponse("/admin/users", status_code=status.HTTP_303_SEE_OTHER)
     if db.query(Operation.id).filter(Operation.user_id == target.id).first() is not None:
-        users = db.query(User).order_by(User.id).all()
-        return templates.TemplateResponse(
-            request,
-            "admin/users.html",
-            {
-                "user": user,
-                "users": users,
-                "error": "No se puede eliminar el usuario porque tiene operaciones asignadas.",
-            },
-            status_code=status.HTTP_409_CONFLICT,
-        )
+        flash(request, "No se puede eliminar el usuario porque tiene operaciones asignadas.", "error")
+        return RedirectResponse("/admin/users", status_code=status.HTTP_303_SEE_OTHER)
+    username = target.username
     db.delete(target)
     db.commit()
-    return RedirectResponse("/admin/users?deleted=1", status_code=status.HTTP_303_SEE_OTHER)
+    audit.log(user.id, "DELETE", "users", user_id, f"Usuario {username} eliminado")
+    flash(request, "Usuario eliminado correctamente.", "success")
+    return RedirectResponse("/admin/users", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/api/admin/users")
 def api_list_users(user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    users = db.query(User).order_by(User.id).all()
+    users = db.query(User).options(joinedload(User.company)).order_by(User.id).all()
     return [serialize_user(u) for u in users]
 
 
@@ -271,8 +309,7 @@ def api_user_detail(
     user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    target = get_user_or_404(db, user_id)
-    return serialize_user(target)
+    return serialize_user(get_user_or_404(db, user_id))
 
 
 @router.delete("/api/admin/users/{user_id}")

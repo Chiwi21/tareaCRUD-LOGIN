@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Embarques · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page">
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow">Logística</p>
+            <h1 class="page__title">Embarques</h1>
+            <p class="page__subtitle">Seguimiento de salidas, llegadas estimadas y transportistas.</p>
+        </div>
+        <a class="btn btn--primary" href="/shipments/new">+ Nuevo embarque</a>
+    </div>
+
+    {% if shipments %}
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Operación</th>
+                    <th>Transportista</th>
+                    <th>Tracking</th>
+                    <th>Ruta</th>
+                    <th>Salida</th>
+                    <th>ETA</th>
+                    <th>Llegada real</th>
+                    <th>Estado</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shipment in shipments %}
+                <tr>
+                    <td><a class="link link--strong" href="/operations/{{ shipment.operation_id }}">{{ shipment.operation.code if shipment.operation else '—' }}</a></td>
+                    <td>{{ shipment.carrier.name if shipment.carrier else '—' }}</td>
+                    <td>{{ shipment.tracking_number or '—' }}</td>
+                    <td class="muted">
+                        {{ shipment.origin_port.code if shipment.origin_port else '—' }}
+                        →
+                        {{ shipment.destination_port.code if shipment.destination_port else '—' }}
+                    </td>
+                    <td>{{ shipment.departure_date|datefmt }}</td>
+                    <td>{{ shipment.estimated_arrival|datefmt }}</td>
+                    <td>{{ shipment.actual_arrival|datefmt }}</td>
+                    <td><span class="chip chip--{{ shipment.status|status_class }}">{{ SHIPMENT_STATUSES[shipment.status] }}</span></td>
+                    <td class="table__actions">
+                        <a class="btn btn--outline btn--sm" href="/shipments/{{ shipment.id }}/edit">Editar</a>
+                        <form method="post" action="/shipments/{{ shipment.id }}/delete" onsubmit="return confirm('¿Eliminar este embarque?');">
+                            <button class="btn btn--danger btn--sm" type="submit">Eliminar</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <h2>Sin embarques</h2>
+        <p>Registre el transportista, el tracking y las fechas para monitorear retrasos.</p>
+        <a class="btn btn--primary" href="/shipments/new">Registrar embarque</a>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

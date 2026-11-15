@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Auditoría · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page">
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow">Administración</p>
+            <h1 class="page__title">Auditoría</h1>
+            <p class="page__subtitle">Registro de accesos y cambios sobre operaciones, documentos, facturas, catálogos y usuarios.</p>
+        </div>
+    </div>
+
+    <form class="filters" method="get" action="/admin/audit">
+        <div class="filters__grid">
+            <div class="filters__field">
+                <label class="form__label" for="q">Buscar</label>
+                <input class="form__input" id="q" name="q" type="search" value="{{ q }}" placeholder="Usuario, entidad o detalle...">
+            </div>
+            <div class="filters__field">
+                <label class="form__label" for="action">Acción</label>
+                <select class="form__input" id="action" name="action">
+                    <option value="">Todas</option>
+                    {% for code in ['CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE', 'LOGIN', 'LOGOUT'] %}
+                    <option value="{{ code }}" {% if action == code %}selected{% endif %}>{{ code }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filters__actions">
+                <button class="btn btn--primary" type="submit">Filtrar</button>
+                <a class="btn btn--outline" href="/admin/audit">Limpiar</a>
+            </div>
+        </div>
+    </form>
+
+    {% if entries %}
+    <div class="table-wrapper">
+        <table class="table table--compact">
+            <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Entidad</th><th>Detalle</th></tr></thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td class="muted">{{ entry.created_at|datefmt('%Y-%m-%d %H:%M') }}</td>
+                    <td>{{ entry.user.username if entry.user else 'Sistema' }}</td>
+                    <td><span class="chip chip--info">{{ entry.action }}</span></td>
+                    <td>{{ entry.entity }}{% if entry.entity_id %} #{{ entry.entity_id }}{% endif %}</td>
+                    <td>{{ entry.detail or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty">No hay registros de auditoría para el filtro seleccionado.</p>
+    {% endif %}
+</section>
+{% endblock %}

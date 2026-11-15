@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} · TradeLab{% endblock %}
+
+{% block content %}
+<section class="page page--narrow">
+    <div class="page__header">
+        <div>
+            <p class="page__eyebrow">Logística</p>
+            <h1 class="page__title">{{ title }}</h1>
+            <p class="page__subtitle">Una operación puede tener un embarque. Las fechas alimentan las alertas de retraso.</p>
+        </div>
+        <a class="btn btn--outline" href="{{ cancel_url }}">Cancelar</a>
+    </div>
+
+    {% if errors %}
+    <div class="alert alert--error" role="alert">
+        <ul class="alert__list">
+            {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <form class="form" method="post" action="{{ action_url }}">
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="operation_id">Operación</label>
+                {% if is_edit %}
+                <input class="form__input" id="operation_id" type="text" value="{{ values.get('operation_id') }}" disabled>
+                {% else %}
+                <select class="form__input" id="operation_id" name="operation_id" required>
+                    <option value="">Seleccione...</option>
+                    {% for operation in operations %}
+                    <option value="{{ operation.id }}" {% if values.get('operation_id')|string == operation.id|string %}selected{% endif %}>{{ operation.code }} — {{ OPERATION_TYPES[operation.type] }}</option>
+                    {% endfor %}
+                </select>
+                {% endif %}
+            </div>
+            <div class="form__col">
+                <label class="form__label" for="carrier_id">Transportista</label>
+                <select class="form__input" id="carrier_id" name="carrier_id">
+                    <option value="">Sin definir</option>
+                    {% for carrier in carriers %}
+                    <option value="{{ carrier.id }}" {% if values.get('carrier_id')|string == carrier.id|string %}selected{% endif %}>{{ carrier.name }} · {{ CARRIER_TYPES[carrier.carrier_type] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <label class="form__label" for="tracking_number">Número de tracking</label>
+        <input class="form__input" id="tracking_number" name="tracking_number" type="text" value="{{ values.get('tracking_number', '') }}">
+
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="origin_port_id">Puerto de origen</label>
+                <select class="form__input" id="origin_port_id" name="origin_port_id">
+                    <option value="">Sin definir</option>
+                    {% for port in ports %}
+                    <option value="{{ port.id }}" {% if values.get('origin_port_id')|string == port.id|string %}selected{% endif %}>{{ port.name }} ({{ port.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form__col">
+                <label class="form__label" for="destination_port_id">Puerto de destino</label>
+                <select class="form__input" id="destination_port_id" name="destination_port_id">
+                    <option value="">Sin definir</option>
+                    {% for port in ports %}
+                    <option value="{{ port.id }}" {% if values.get('destination_port_id')|string == port.id|string %}selected{% endif %}>{{ port.name }} ({{ port.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form__row">
+            <div class="form__col">
+                <label class="form__label" for="departure_date">Fecha de salida</label>
+                <input class="form__input" id="departure_date" name="departure_date" type="date" value="{{ values.get('departure_date', '') }}">
+            </div>
+            <div class="form__col">
+                <label class="form__label" for="estimated_arrival">Llegada estimada</label>
+                <input class="form__input" id="estimated_arrival" name="estimated_arrival" type="date" value="{{ values.get('estimated_arrival', '') }}">
+            </div>
+            <div class="form__col">
+                <label class="form__label" for="actual_arrival">Llegada real</label>
+                <input class="form__input" id="actual_arrival" name="actual_arrival" type="date" value="{{ values.get('actual_arrival', '') }}">
+            </div>
+        </div>
+
+        <label class="form__label" for="status">Estado</label>
+        <select class="form__input" id="status" name="status" required>
+            {% for code, label in SHIPMENT_STATUSES.items() %}
+            <option value="{{ code }}" {% if values.get('status') == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+
+        <label class="form__label" for="notes">Notas</label>
+        <textarea class="form__input" id="notes" name="notes" rows="3">{{ values.get('notes', '') }}</textarea>
+
+        <div class="form__actions">
+            <button class="btn btn--primary" type="submit">Guardar embarque</button>
+            <a class="btn btn--outline" href="{{ cancel_url }}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

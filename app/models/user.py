@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import datetime
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -20,27 +20,22 @@ class User(Base):
     cedula: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=True)
     ruc: Mapped[str | None] = mapped_column(String(20), unique=True, nullable=True)
     razon_social: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    company_id: Mapped[int | None] = mapped_column(
+        ForeignKey("companies.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+    company: Mapped[Company | None] = relationship(back_populates="users")
     operations: Mapped[list[Operation]] = relationship(
         back_populates="user",
         passive_deletes="all",
     )
-
-
-class Operation(Base):
-    __tablename__ = "operations"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int | None] = mapped_column(
-        ForeignKey("users.id", ondelete="RESTRICT"),
-        nullable=True,
-        index=True,
+    audit_logs: Mapped[list[AuditLog]] = relationship(back_populates="user")
+    status_changes: Mapped[list[OperationStatusHistory]] = relationship(
+        back_populates="changed_by"
     )
-    type: Mapped[str] = mapped_column(String(20))
-    product: Mapped[str] = mapped_column(String(120))
-    quantity: Mapped[int] = mapped_column(Integer)
-    country: Mapped[str] = mapped_column(String(80))
-    date: Mapped[date] = mapped_column(Date)
-    status: Mapped[str] = mapped_column(String(20))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    user: Mapped[User | None] = relationship(back_populates="operations")
+    uploaded_documents: Mapped[list[Document]] = relationship(
+        back_populates="uploaded_by"
+    )
+    resolved_alerts: Mapped[list[Alert]] = relationship(back_populates="resolved_by")
