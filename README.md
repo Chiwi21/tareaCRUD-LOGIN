@@ -9,6 +9,11 @@ Proyecto desarrollado para la materia **Ingeniería Web**. Evoluciona el CRUD y
 el login de la Tarea 3 hacia un sistema con 22 tablas, arquitectura por capas y
 principios **SOLID** en FastAPI.
 
+**Demo en producción:** <https://tradelab-tb9r.onrender.com>
+
+> El servicio usa el plan gratuito de Render: tras un periodo de inactividad la
+> primera petición puede tardar alrededor de 50 segundos en responder.
+
 ---
 
 ## Tabla de contenidos
@@ -385,6 +390,20 @@ curl -b cookies.txt http://127.0.0.1:8000/api/operations
 
 ## Despliegue en Render + Neon
 
+### Instancia desplegada
+
+| Elemento | Valor |
+|---|---|
+| URL pública | <https://tradelab-tb9r.onrender.com> |
+| Health check | <https://tradelab-tb9r.onrender.com/health> |
+| Servicio Render | `tradelab` (Python 3, plan Free, región Ohio) |
+| Base de datos | Neon `tradelab` (PostgreSQL 18, AWS us-east-2) |
+| Repositorio | `Chiwi21/tareaCRUD-LOGIN`, rama `main` |
+
+El servicio ejecuta `python migrate_legacy.py && python seed.py` en cada
+arranque antes de levantar Uvicorn, por lo que la base se mantiene migrada y
+con los catálogos completos sin duplicar información.
+
 ### 1. Crear la base en Neon
 
 1. Crear un proyecto en <https://neon.tech>.
@@ -422,9 +441,10 @@ En **Environment** del servicio:
 
 1. Render ejecuta la migración y el seed en cada arranque; ambos son
    idempotentes.
-2. Verificar `https://<servicio>.onrender.com/health`.
+2. Verificar `https://tradelab-tb9r.onrender.com/health`; debe responder
+   `{"status":"ok","app":"TradeLab"}`.
 3. Iniciar sesión con el administrador configurado.
-4. Revisar `/dashboard`, `/operations` y `/alerts`.
+4. Revisar `/dashboard`, `/operations`, `/alerts` y `/api/operations`.
 
 > En el plan gratuito el servicio se suspende por inactividad. Al despertar,
 > el comando de arranque vuelve a ejecutar migración y seed sin duplicar datos.
