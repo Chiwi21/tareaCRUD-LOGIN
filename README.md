@@ -220,8 +220,8 @@ tarea3-crud-login/
 Requisitos: **Python 3.11+** (probado con 3.14) y `pip`.
 
 ```bash
-git clone https://github.com/Chiwi21/tareaCRUD-LOGIN.git
-cd tareaCRUD-LOGIN
+git clone https://github.com/Chiwi21/tradelab.git
+cd tradelab
 python -m venv .venv
 ```
 
@@ -398,7 +398,7 @@ curl -b cookies.txt http://127.0.0.1:8000/api/operations
 | Health check | <https://tradelab-tb9r.onrender.com/health> |
 | Servicio Render | `tradelab` (Python 3, plan Free, región Ohio) |
 | Base de datos | Neon `tradelab` (PostgreSQL 18, AWS us-east-2) |
-| Repositorio | `Chiwi21/tareaCRUD-LOGIN`, rama `main` |
+| Repositorio | `Chiwi21/tradelab`, rama `main` |
 
 El servicio ejecuta `python migrate_legacy.py && python seed.py` en cada
 arranque antes de levantar Uvicorn, por lo que la base se mantiene migrada y
@@ -466,4 +466,4 @@ En **Environment** del servicio:
 
 **Alfredo Chiguano** — Ingeniería Web
 
-Repositorio: <https://github.com/Chiwi21/tareaCRUD-LOGIN>
+Repositorio: <https://github.com/Chiwi21/tradelab>
