@@ -39,6 +39,12 @@
         });
     });
 
+    /* Abre el diálogo de impresión de la factura. */
+    const printButtons = document.querySelectorAll("[data-print]");
+    printButtons.forEach((button) => {
+        button.addEventListener("click", () => window.print());
+    });
+
     /* Cierra los mensajes flash después de unos segundos. */
     const flashes = document.querySelectorAll(".main > .alert");
     flashes.forEach((flash) => {
