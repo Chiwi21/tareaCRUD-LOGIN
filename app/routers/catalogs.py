@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
-from app.catalog_specs import CATALOG_ICONS, CATALOG_SPECS, CatalogSpec
+from app.catalog_specs import CATALOG_SPECS, CatalogSpec
 from app.dependencies import get_catalog_service
 from app.flash import flash
 from app.models import User
@@ -34,7 +34,6 @@ def catalogs_index(
             "user": user,
             "specs": CATALOG_SPECS.values(),
             "counts": service.counts(),
-            "icons": CATALOG_ICONS,
         },
     )
 
@@ -56,7 +55,6 @@ def catalog_list(
             "spec": spec,
             "rows": service.rows(key, q),
             "q": q,
-            "icon": CATALOG_ICONS.get(key, "📁"),
         },
     )
 
@@ -81,7 +79,6 @@ def catalog_new_form(
             "is_edit": False,
             "action_url": f"/catalogs/{key}/new",
             "cancel_url": f"/catalogs/{key}",
-            "icon": CATALOG_ICONS.get(key, "📁"),
         },
     )
 
@@ -109,8 +106,7 @@ async def catalog_create(
                 "is_edit": False,
                 "action_url": f"/catalogs/{key}/new",
                 "cancel_url": f"/catalogs/{key}",
-                "icon": CATALOG_ICONS.get(key, "📁"),
-            },
+                },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     flash(request, f"{spec.singular.capitalize()} creado correctamente.", "success")
@@ -141,7 +137,6 @@ def catalog_edit_form(
             "is_edit": True,
             "action_url": f"/catalogs/{key}/{entity_id}/edit",
             "cancel_url": f"/catalogs/{key}",
-            "icon": CATALOG_ICONS.get(key, "📁"),
         },
     )
 
@@ -170,8 +165,7 @@ async def catalog_update(
                 "is_edit": True,
                 "action_url": f"/catalogs/{key}/{entity_id}/edit",
                 "cancel_url": f"/catalogs/{key}",
-                "icon": CATALOG_ICONS.get(key, "📁"),
-            },
+                },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     flash(request, f"{spec.singular.capitalize()} actualizado correctamente.", "success")

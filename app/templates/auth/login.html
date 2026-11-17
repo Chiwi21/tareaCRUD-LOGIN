@@ -2,34 +2,60 @@
 
 {% block title %}Iniciar sesión · TradeLab{% endblock %}
 
+{% block body_class %}auth-page{% endblock %}
+
 {% block content %}
 <section class="auth">
-    <div class="auth__brand">
-        <span class="auth__logo">TL</span>
-        <span class="auth__brand-name">Trade<span>Lab</span></span>
+    <aside class="auth__aside">
+        <div class="auth__brand">
+            <span class="auth__logo" aria-hidden="true">TL</span>
+            <span class="auth__brand-name">Trade<span>Lab</span></span>
+        </div>
+
+        <div class="auth__manifesto">
+            <p class="auth__kicker">Mesa de operaciones</p>
+            <h1 class="auth__display">Comercio exterior, en orden.</h1>
+            <p class="auth__lede">Importaciones y exportaciones con costos, documentos, embarques y facturación en un solo expediente.</p>
+        </div>
+
+        <ol class="auth__index">
+            <li><span>01</span> Operaciones</li>
+            <li><span>02</span> Escenarios de costo</li>
+            <li><span>03</span> Documentos</li>
+            <li><span>04</span> Embarques</li>
+            <li><span>05</span> Facturación</li>
+        </ol>
+
+        <p class="auth__foot">Ingeniería Web · 2026</p>
+    </aside>
+
+    <div class="auth__panel">
+        <div class="auth__form-wrap">
+            <p class="auth__eyebrow">Acceso al sistema</p>
+            <h2 class="auth__title">Iniciar sesión</h2>
+            <p class="auth__subtitle">Identifíquese con las credenciales asignadas por la administración.</p>
+
+            {% if registered %}
+            <p class="alert alert--success">Registro exitoso. Ahora puede iniciar sesión con sus credenciales.</p>
+            {% endif %}
+
+            {% if error %}
+            <p class="alert alert--error">{{ error }}</p>
+            {% endif %}
+
+            <form class="form" method="post" action="/login">
+                <label class="form__label" for="username">Usuario</label>
+                <input class="form__input" id="username" name="username" type="text"
+                       value="{{ username or '' }}" required autofocus autocomplete="username">
+
+                <label class="form__label" for="password">Contraseña</label>
+                <input class="form__input" id="password" name="password" type="password" required autocomplete="current-password">
+
+                <button class="btn btn--primary btn--block" type="submit">Ingresar</button>
+            </form>
+
+            <p class="auth__alt">¿No tiene cuenta? <a href="/register">Regístrese como Importador o Exportador</a></p>
+        </div>
     </div>
-    <h1 class="auth__title">Iniciar sesión</h1>
-    <p class="auth__subtitle">Planificación de importaciones y exportaciones: costos, documentos, embarques y alertas.</p>
-
-    {% if registered %}
-    <p class="alert alert--success">Registro exitoso. Ahora puede iniciar sesión con sus credenciales.</p>
-    {% endif %}
-
-    {% if error %}
-    <p class="alert alert--error">{{ error }}</p>
-    {% endif %}
-
-    <form class="form" method="post" action="/login">
-        <label class="form__label" for="username">Usuario</label>
-        <input class="form__input" id="username" name="username" type="text"
-               value="{{ username or '' }}" required autofocus autocomplete="username">
-
-        <label class="form__label" for="password">Contraseña</label>
-        <input class="form__input" id="password" name="password" type="password" required autocomplete="current-password">
-
-        <button class="btn btn--primary btn--block" type="submit">Ingresar</button>
-    </form>
-
-    <p class="auth__alt">¿No tiene cuenta? <a href="/register">Regístrese como Importador o Exportador</a></p>
 </section>
 {% endblock %}

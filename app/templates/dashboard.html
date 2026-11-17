@@ -4,23 +4,30 @@
 
 {% block content %}
 <section class="page">
-    <div class="hero">
-        <div>
-            <p class="hero__eyebrow">Centro de planificación</p>
-            <h1 class="hero__title">Hola, {{ user.username }}</h1>
-            <p class="hero__subtitle">
-                {{ 'Vista global de TradeLab: operaciones, costos, documentos y alertas.' if is_admin else 'Sus operaciones asignadas, documentos y alertas.' }}
-            </p>
+    <div class="masthead">
+        <div class="masthead__bar">
+            <span>TradeLab / Panel general</span>
+            <span>Responsable: {{ user.username }}</span>
+            <span>Perfil: {{ ROLES[user.role] }}</span>
         </div>
-        <div class="hero__actions">
-            {% if is_admin %}
-            <a class="btn btn--primary" href="/operations/new">+ Nueva operación</a>
-            <form method="post" action="/alerts/generate">
-                <button class="btn btn--outline" type="submit">Evaluar alertas</button>
-            </form>
-            {% else %}
-            <a class="btn btn--primary" href="/operations">Ver mis operaciones</a>
-            {% endif %}
+        <div class="masthead__body">
+            <div>
+                <p class="masthead__kicker">Centro de operaciones</p>
+                <h1 class="masthead__title">Panel de control</h1>
+                <p class="masthead__note">
+                    {{ 'Vista global de TradeLab: operaciones, costos, documentos y alertas.' if is_admin else 'Sus operaciones asignadas, documentos y alertas.' }}
+                </p>
+            </div>
+            <div class="masthead__actions">
+                {% if is_admin %}
+                <a class="btn btn--primary" href="/operations/new">Nueva operación</a>
+                <form method="post" action="/alerts/generate">
+                    <button class="btn btn--outline" type="submit">Evaluar alertas</button>
+                </form>
+                {% else %}
+                <a class="btn btn--primary" href="/operations">Ver mis operaciones</a>
+                {% endif %}
+            </div>
         </div>
     </div>
 

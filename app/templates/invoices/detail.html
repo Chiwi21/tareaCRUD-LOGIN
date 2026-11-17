@@ -4,26 +4,28 @@
 
 {% block content %}
 {% set symbol = invoice.currency.symbol if invoice.currency else '$' %}
+{% set operation = invoice.operation %}
 <section class="page">
-    <div class="page__header">
+    <div class="page__header no-print">
         <div>
             <p class="page__eyebrow"><a class="link" href="/invoices">Facturación</a> / {{ invoice.number }}</p>
             <h1 class="page__title">Factura {{ invoice.number }}</h1>
             <p class="page__subtitle">
                 <span class="chip chip--{{ invoice.status|status_class }}">{{ INVOICE_STATUSES[invoice.status] }}</span>
-                · Operación <a class="link" href="/operations/{{ invoice.operation_id }}">{{ invoice.operation.code if invoice.operation else '—' }}</a>
+                · Operación <a class="link" href="/operations/{{ invoice.operation_id }}">{{ operation.code if operation else '—' }}</a>
                 {% if invoice.is_overdue %} · <span class="text-danger">Vencida</span>{% endif %}
             </p>
         </div>
         <div class="page__actions">
             <a class="btn btn--outline" href="/invoices">Volver</a>
+            <button class="btn btn--outline" type="button" data-print>Imprimir</button>
             <form method="post" action="/invoices/{{ invoice.id }}/delete" onsubmit="return confirm('¿Eliminar la factura {{ invoice.number }} y sus pagos?');">
                 <button class="btn btn--danger" type="submit">Eliminar</button>
             </form>
         </div>
     </div>
 
-    <div class="kpi-grid kpi-grid--compact">
+    <div class="kpi-grid kpi-grid--compact no-print">
         <article class="kpi">
             <span class="kpi__label">Total</span>
             <strong class="kpi__value">{{ symbol }} {{ invoice.total|money }}</strong>
@@ -41,7 +43,7 @@
         </article>
     </div>
 
-    <div class="grid-2">
+    <div class="grid-2 no-print">
         <section class="section">
             <div class="section__header">
                 <h2 class="section__title">Datos de la factura</h2>
@@ -92,7 +94,7 @@
         </section>
     </div>
 
-    <section class="section">
+    <section class="section no-print">
         <div class="section__header">
             <h2 class="section__title">Pagos registrados</h2>
         </div>
@@ -122,5 +124,129 @@
         <p class="empty">Todavía no se han registrado pagos.</p>
         {% endif %}
     </section>
+
+    <article class="invoice-sheet" aria-label="Factura imprimible {{ invoice.number }}">
+        <header class="sheet__head">
+            <div class="sheet__brand">
+                <span class="sheet__mark">TL</span>
+                <div>
+                    <strong>TradeLab</strong>
+                    <span>Operaciones de comercio exterior</span>
+                </div>
+            </div>
+            <div class="sheet__doc">
+                <span class="sheet__doc-label">Factura</span>
+                <span class="sheet__doc-number">{{ invoice.number }}</span>
+            </div>
+        </header>
+
+        <div class="sheet__meta">
+            <div><span>Emisión</span><strong>{{ invoice.issue_date|datefmt }}</strong></div>
+            <div><span>Vencimiento</span><strong>{{ invoice.due_date|datefmt }}</strong></div>
+            <div><span>Moneda</span><strong>{{ invoice.currency.code if invoice.currency else 'USD' }}</strong></div>
+            <div><span>Estado</span><strong>{{ INVOICE_STATUSES[invoice.status] }}</strong></div>
+        </div>
+
+        <div class="sheet__parties">
+            <section>
+                <h3 class="sheet__block-title">Emisor</h3>
+                <p><strong>TradeLab</strong></p>
+                <p>Planificación de comercio exterior</p>
+                <p>Quito · Ecuador</p>
+            </section>
+            <section>
+                <h3 class="sheet__block-title">Cliente</h3>
+                <p><strong>{{ operation.company.name if operation and operation.company else '—' }}</strong></p>
+                {% if operation and operation.company %}
+                    {% if operation.company.tax_id %}<p>RUC / CI: {{ operation.company.tax_id }}</p>{% endif %}
+                    {% if operation.company.address %}<p>{{ operation.company.address }}</p>{% endif %}
+                    {% if operation.company.email %}<p>{{ operation.company.email }}</p>{% endif %}
+                {% endif %}
+            </section>
+        </div>
+
+        <section class="sheet__operation">
+            <h3 class="sheet__block-title">Operación</h3>
+            <p>
+                <strong>{{ operation.code if operation else '—' }}</strong>
+                {% if operation %} · {{ OPERATION_TYPES[operation.type] }} · {{ operation.operation_date|datefmt }}{% endif %}
+            </p>
+            {% if operation %}
+            <p>
+                Ruta: {{ operation.origin_port.name if operation.origin_port else '—' }}
+                → {{ operation.destination_port.name if operation.destination_port else '—' }}
+                {% if operation.incoterm %} · Incoterm {{ operation.incoterm.code }}{% endif %}
+            </p>
+            {% endif %}
+        </section>
+
+        <table class="sheet__table">
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th>Detalle</th>
+                    <th class="num">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Operación de {{ OPERATION_TYPES[operation.type]|lower if operation else 'comercio exterior' }}</td>
+                    <td>{{ operation.code if operation else '—' }}{% if operation and operation.company %} · {{ operation.company.name }}{% endif %}</td>
+                    <td class="num">{{ symbol }} {{ invoice.subtotal|money }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="sheet__totals">
+            <div><span>Subtotal</span><span>{{ symbol }} {{ invoice.subtotal|money }}</span></div>
+            <div><span>Impuesto</span><span>{{ symbol }} {{ invoice.tax_amount|money }}</span></div>
+            <div class="is-total"><span>Total</span><span>{{ symbol }} {{ invoice.total|money }}</span></div>
+            <div><span>Pagado</span><span>{{ symbol }} {{ invoice.paid_amount|money }}</span></div>
+            <div><span>Saldo</span><span>{{ symbol }} {{ invoice.balance|money }}</span></div>
+        </div>
+
+        {% if invoice.payments %}
+        <section class="sheet__payments">
+            <h3 class="sheet__block-title">Pagos registrados</h3>
+            <table class="sheet__table">
+                <thead>
+                    <tr><th>Fecha</th><th>Método</th><th>Referencia</th><th class="num">Monto</th></tr>
+                </thead>
+                <tbody>
+                    {% for payment in invoice.payments %}
+                    <tr>
+                        <td>{{ payment.payment_date|datefmt }}</td>
+                        <td>{{ PAYMENT_METHODS[payment.method] }}</td>
+                        <td>{{ payment.reference or '—' }}</td>
+                        <td class="num">{{ symbol }} {{ payment.amount|money }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+        {% endif %}
+
+        {% if invoice.notes %}
+        <div class="sheet__notes">
+            <strong>Notas</strong>
+            <p>{{ invoice.notes }}</p>
+        </div>
+        {% endif %}
+
+        {% if invoice.status == 'CANCELLED' %}
+        <div class="sheet__stamp sheet__stamp--cancelled">Anulada</div>
+        {% elif invoice.status == 'PAID' or invoice.balance <= 0 %}
+        <div class="sheet__stamp sheet__stamp--paid">Pagada</div>
+        {% elif invoice.is_overdue %}
+        <div class="sheet__stamp sheet__stamp--overdue">Vencida</div>
+        {% else %}
+        <div class="sheet__stamp sheet__stamp--pending">Pendiente</div>
+        {% endif %}
+
+        <footer class="sheet__foot">
+            <span>TradeLab · Documento generado electrónicamente</span>
+            <span>{{ invoice.number }} · {{ invoice.issue_date|datefmt }}</span>
+        </footer>
+    </article>
 </section>
 {% endblock %}

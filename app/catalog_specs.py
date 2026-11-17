@@ -247,16 +247,3 @@ OPTION_SOURCES: dict[str, tuple[type[Any], str, str]] = {
     "currencies": (Currency, "code", "code"),
     "companies": (Company, "name", "name"),
 }
-
-CATALOG_ICONS = {
-    "companies": "🏢",
-    "countries": "🌎",
-    "ports": "⚓",
-    "currencies": "💵",
-    "categories": "🏷️",
-    "products": "📦",
-    "incoterms": "📄",
-    "cost-concepts": "🧮",
-    "document-types": "📑",
-    "carriers": "🚢",
-}
