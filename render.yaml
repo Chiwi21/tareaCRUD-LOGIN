@@ -1,12 +1,14 @@
 services:
   - type: web
-    name: tradelab
+    name: international-trade-v3
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: python migrate_legacy.py && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: python prepare_production.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
+      - key: APP_ENV
+        value: production
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY
@@ -15,7 +17,3 @@ services:
         value: admin
       - key: ADMIN_PASSWORD
         sync: false
-      - key: DEMO_PASSWORD
-        sync: false
-      - key: SEED_DEMO
-        value: "1"

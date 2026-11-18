@@ -845,7 +845,7 @@ def main() -> None:
         users = seed_users(db, data)
         seed_demo_operations(db, data, users)
         generate_alerts(db)
-        print("Seed de TradeLab completado.")
+        print("Seed de International Trade completado.")
         print(f"Catálogos: {len(data['products'])} productos, {len(data['ports'])} puertos, {len(data['concepts'])} conceptos de costo.")
     finally:
         db.close()

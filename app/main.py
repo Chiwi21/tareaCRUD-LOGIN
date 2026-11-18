@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import BASE_DIR, SECRET_KEY, SESSION_MAX_AGE
+from app.config import BASE_DIR, SECRET_KEY, SESSION_MAX_AGE, APP_ENV
 from app.database import init_database
 from app.routers import (
     admin,
@@ -17,15 +17,17 @@ from app.routers import (
     documents,
     logistics,
     operations,
+    portal,
+    planning,
 )
 from app.templating import templates
 
 init_database()
 
 app = FastAPI(
-    title="TradeLab — Planificación de comercio exterior",
+    title="International Trade — Portal de comercio exterior",
     description=(
-        "Sistema de planificación de importaciones y exportaciones: operaciones, "
+        "Portal de comercio exterior: operaciones, "
         "escenarios de costo, documentos, embarques, facturación y alertas."
     ),
     version="2.0.0",
@@ -36,7 +38,7 @@ app.add_middleware(
     secret_key=SECRET_KEY,
     max_age=SESSION_MAX_AGE,
     same_site="lax",
-    https_only=False,
+    https_only=(APP_ENV == "production"),
 )
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "app" / "static")), name="static")
@@ -77,12 +79,14 @@ def root(request: Request):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "app": "TradeLab"}
+    return {"status": "ok", "app": "International Trade"}
 
 
 app.include_router(auth.router)
 app.include_router(dashboard.router)
+app.include_router(portal.router)
 app.include_router(operations.router)
+app.include_router(planning.router)
 app.include_router(costs.router)
 app.include_router(documents.router)
 app.include_router(logistics.router)

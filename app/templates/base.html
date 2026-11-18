@@ -1,71 +1,99 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light">
-    <meta name="description" content="TradeLab: planificación de importaciones y exportaciones con escenarios de costo, documentos, embarques y alertas.">
-    <title>{% block title %}TradeLab{% endblock %}</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231C1B18'/%3E%3Ctext x='16' y='21' font-family='monospace' font-size='11' fill='%23F3EFE6' text-anchor='middle'%3ETL%3C/text%3E%3C/svg%3E">
-    <link rel="preload" href="/static/fonts/public-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="preload" href="/static/fonts/ibm-plex-mono-400-latin.woff2" as="font" type="font/woff2" crossorigin>
-    <link rel="stylesheet" href="/static/css/tradelab.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="International Trade: organiza tus operaciones, estima costos y consulta recursos para importar.">
+  <title>{% block title %}International Trade{% endblock %}</title>
+  <link rel="icon" type="image/svg+xml" href="/static/img/brand.svg">
+  <link rel="stylesheet" href="/static/css/tradelab.css">
+  <link rel="stylesheet" href="/static/css/international-trade.css">
 </head>
-<body class="{% block body_class %}{% endblock %}">
-    <div class="topstrip">
-        <div class="topstrip__inner">
-            <span>Sistema de operaciones de comercio exterior</span>
-            <span class="topstrip__meta">Ecuador · UTC−5</span>
-        </div>
+<body class="{% block body_class %}{% endblock %} {{ 'it-logged' if user else 'it-guest' }}">
+<svg aria-hidden="true" width="0" height="0" class="it-svg-symbols" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="it-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+  <symbol id="it-calculator" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 11h2m4 0h2m-8 4h2m4 0h2m-8 4h2m4 0h2"/></symbol>
+  <symbol id="it-file" viewBox="0 0 24 24"><path d="M6 2h8l4 4v16H6zM14 2v5h5M9 12h6M9 16h6"/></symbol>
+  <symbol id="it-box" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Zm-9 5v10l9 5 9-5V7M12 12v10"/></symbol>
+  <symbol id="it-book" viewBox="0 0 24 24"><path d="M12 5c-3-2-6-2-9-1v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-3-1-6-1-9 1Zm0 0v15"/></symbol>
+  <symbol id="it-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 1 1 4.3 2.2L12 13v1M12 18h.01"/></symbol>
+  <symbol id="it-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M2 20c0-4 3-6 7-6s7 2 7 6M17 5a3 3 0 0 1 0 6m1 3c3 0 4 2 4 6"/></symbol>
+  <symbol id="it-ship" viewBox="0 0 24 24"><path d="M3 15h18l-3 6H6l-3-6ZM5 15V9h14v6M9 9V4h6v5M2 21l2-1m16 0 2 1"/></symbol>
+  <symbol id="it-chart" viewBox="0 0 24 24"><path d="M3 21V3m0 18h18M7 16l5-6 4 3 5-8"/></symbol>
+  <symbol id="it-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="it-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="it-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 8-3 8-3 10h18c0-2-3-2-3-10ZM10 21h4"/></symbol>
+</svg>
+{% macro icon(name, cls='') -%}
+  <svg class="it-icon {{ cls }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#it-{{ name }}"></use></svg>
+{%- endmacro %}
+{% macro nav(href, ico, label) -%}
+<a class="it-nav-link {% if request.url.path == href or (href != '/dashboard' and request.url.path.startswith(href + '/')) %}is-active{% endif %}" href="{{ href }}">{{ icon(ico) }}<span>{{ label }}</span></a>
+{%- endmacro %}
+{% if user %}
+<div class="it-app" id="it-app">
+  <aside class="it-sidebar" id="it-sidebar" aria-label="Menú del portal">
+    <a class="it-brand it-brand--sidebar" href="/dashboard">
+      <img src="/static/img/brand.svg" alt="" width="38" height="38">
+      <span><strong>International Trade</strong><small>Portal de comercio exterior</small></span>
+    </a>
+    <div class="it-sidebar-content">
+      <p class="it-nav-label">GENERAL</p>
+      {{ nav('/dashboard', 'grid', 'Inicio') }}
+      {{ nav('/operations', 'box', 'Mis operaciones') }}
+      <p class="it-nav-label">HERRAMIENTAS</p>
+      {{ nav('/herramientas/calculadora', 'calculator', 'Calculadora de importación') }}
+      <a class="it-nav-link" href="/operations" title="Selecciona una operación y abre su comparador">{{ icon('chart') }}<span>Comparar escenarios <small>Dentro de mis operaciones</small></span></a>
+      <p class="it-nav-label">INFORMACIÓN</p>
+      {{ nav('/informacion', 'book', 'Guías y entidades') }}
+      {{ nav('/ayuda', 'help', 'Centro de ayuda') }}
+      {% if user.role == 'ADMIN' %}
+      <p class="it-nav-label">ADMINISTRACIÓN</p>
+      {{ nav('/admin/users', 'users', 'Usuarios y roles') }}
+      {{ nav('/catalogs', 'file', 'Catálogos') }}
+      {{ nav('/documents', 'file', 'Documentos') }}
+      {{ nav('/shipments', 'ship', 'Embarques') }}
+      {{ nav('/invoices', 'file', 'Facturación') }}
+      {{ nav('/alerts', 'bell', 'Alertas') }}
+      {{ nav('/admin/soporte', 'help', 'Solicitudes de ayuda') }}
+      {{ nav('/admin/audit', 'file', 'Auditoría') }}
+      {% endif %}
     </div>
-
-    <header class="header">
-        <div class="header__container">
-            <a class="header__brand" href="/dashboard" aria-label="TradeLab, ir al panel">
-                <span class="header__logo" aria-hidden="true">TL</span>
-                <span class="header__name">Trade<span>Lab</span></span>
-            </a>
-            {% if user %}
-            <div class="header__account">
-                <span class="nav__user">
-                    <span class="nav__avatar" aria-hidden="true">{{ user.username[:1]|upper }}</span>
-                    <span class="nav__user-text">{{ user.username }} · {{ ROLES[user.role] }}</span>
-                </span>
-                <form class="nav__logout" method="post" action="/logout">
-                    <button class="btn btn--ghost btn--sm" type="submit">Salir</button>
-                </form>
-            </div>
-            <nav class="nav" aria-label="Navegación principal">
-                <a class="nav__link {% if request.url.path == '/dashboard' %}nav__link--active{% endif %}" href="/dashboard">Panel</a>
-                <a class="nav__link {% if request.url.path.startswith('/operations') %}nav__link--active{% endif %}" href="/operations">Operaciones</a>
-                {% if user.role == 'ADMIN' %}
-                <a class="nav__link {% if request.url.path.startswith('/catalogs') %}nav__link--active{% endif %}" href="/catalogs">Catálogos</a>
-                <a class="nav__link {% if request.url.path.startswith('/documents') %}nav__link--active{% endif %}" href="/documents">Documentos</a>
-                <a class="nav__link {% if request.url.path.startswith('/shipments') %}nav__link--active{% endif %}" href="/shipments">Embarques</a>
-                <a class="nav__link {% if request.url.path.startswith('/invoices') %}nav__link--active{% endif %}" href="/invoices">Facturación</a>
-                <a class="nav__link {% if request.url.path.startswith('/alerts') %}nav__link--active{% endif %}" href="/alerts">Alertas</a>
-                <a class="nav__link {% if request.url.path.startswith('/admin/audit') %}nav__link--active{% endif %}" href="/admin/audit">Auditoría</a>
-                <a class="nav__link {% if request.url.path.startswith('/admin/users') %}nav__link--active{% endif %}" href="/admin/users">Usuarios</a>
-                {% endif %}
-            </nav>
-            {% endif %}
-        </div>
+    <div class="it-sidebar-bottom"><span class="it-connection-dot"></span> Sesión activa <span class="it-badge-preview">Versión local</span></div>
+  </aside>
+  <div class="it-screen">
+    <header class="it-topbar">
+      <div class="it-topbar-left">
+        <button class="it-menu-toggle" type="button" aria-label="Abrir menú" aria-expanded="false" aria-controls="it-sidebar" data-sidebar-toggle>{{ icon('menu') }}</button>
+        <div><strong>Centro de operaciones</strong><small>International Trade / Ecuador</small></div>
+      </div>
+      <div class="it-topbar-right">
+        <a class="it-topbar-help" href="/ayuda">{{ icon('help') }} Ayuda</a>
+        <span class="it-user-avatar">{{ (user.full_name or user.username)[:1]|upper }}</span>
+        <div class="it-user-id"><strong>{{ user.full_name or user.username }}</strong><small>{{ ROLES.get(user.role, user.role) }}</small></div>
+        <form method="post" action="/logout"><button class="it-logout" type="submit">Salir</button></form>
+      </div>
     </header>
-
-    <main class="main">
-        {% set flashes = get_flashed_messages(request) %}
-        {% for message in flashes %}
-        <div class="alert alert--{{ message.category }}" role="alert">{{ message.message }}</div>
-        {% endfor %}
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="footer">
-        <div class="footer__inner">
-            <p><strong>TradeLab</strong> · Planificación de comercio exterior · Ingeniería Web</p>
-            <p class="footer__meta">FastAPI · SQLAlchemy · Jinja2 · SQLite / PostgreSQL</p>
-        </div>
-    </footer>
-    <script src="/static/js/app.js"></script>
+{% else %}
+<div class="it-public">
+  <header class="it-public-header"><a class="it-brand" href="/login"><img src="/static/img/brand.svg" width="37" height="37" alt=""><span><strong>International Trade</strong><small>Portal de comercio exterior</small></span></a><div><a href="/login">Ingresar</a><a class="it-small-primary" href="/register">Crear cuenta</a></div></header>
+{% endif %}
+<main class="main it-main {% if not user %}it-main-public{% endif %}">
+  {% set flashes = get_flashed_messages(request) %}
+  {% for message in flashes %}<div class="alert alert--{{ message.category }}" role="alert">{{ message.message }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+{% if user %}
+  <footer class="it-footer">International Trade · Plataforma local de evaluación · Los cálculos son orientativos</footer>
+  </div>
+</div>
+<div class="it-sidebar-scrim" data-sidebar-scrim></div>
+{% else %}
+  <footer class="it-public-footer">International Trade · Proyecto académico de comercio exterior</footer>
+</div>
+{% endif %}
+<script src="/static/js/app.js"></script>
+<script src="/static/js/portal.js"></script>
+<script src="/static/js/auth-slider.js" defer></script>
 </body>
 </html>

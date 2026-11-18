@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }} · TradeLab{% endblock %}
+{% block title %}{{ title }} · International Trade{% endblock %}
 
 {% block content %}
 <section class="page page--narrow">
@@ -22,6 +22,8 @@
     {% endif %}
 
     <form class="form" method="post" action="{{ action_url }}">
+        {% if not is_admin and not is_edit %}<div class="tr-callout">El proyecto quedará asignado a tu usuario. Los permisos y el estado administrativo se gestionan internamente.</div>{% endif %}
+        {% if is_admin %}
         <div class="form__row">
             <div class="form__col">
                 <label class="form__label" for="type">Tipo de operación</label>
@@ -63,6 +65,7 @@
             </div>
         </div>
 
+        {% else %}<input type="hidden" name="type" value="{{ 'IMPORT' if user.role=='IMPORTER' else 'EXPORT' }}"><input type="hidden" name="status" value="PENDING">{% endif %}
         <div class="form__row">
             <div class="form__col">
                 <label class="form__label" for="operation_date">Fecha de operación</label>
@@ -112,6 +115,21 @@
             </div>
         </div>
 
+        <div class="tr-operation-intro"><span class="tr-step">DIAGNÓSTICO PRELIMINAR</span><h2>¿Qué producto planeas importar?</h2><p>Estos datos permiten generar un checklist de entidades y permisos que debes revisar. No sustituyen la verificación oficial.</p></div>
+        <div class="form__row">
+            <div class="form__col"><label class="form__label" for="product_category">Categoría del producto</label><select class="form__input" id="product_category" name="product_category" required>{% for code,label in categories.items() %}<option value="{{ code }}" {% if values.get('product_category','general')==code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="form__col"><label class="form__label" for="product_name">Nombre del producto</label><input class="form__input" name="product_name" id="product_name" maxlength="160" value="{{ values.get('product_name','') }}" placeholder="Ej. Audífonos Bluetooth"></div>
+        </div>
+        <div class="form__row">
+            <div class="form__col"><label class="form__label" for="hs_code">Subpartida / HS Code (opcional)</label><input class="form__input" name="hs_code" id="hs_code" maxlength="20" value="{{ values.get('hs_code','') }}" placeholder="6, 8 o 10 dígitos"><small>No verificamos automáticamente su clasificación en SENAE.</small></div>
+            <div class="form__col"><label class="form__label" for="project_quantity">Cantidad estimada (unidades)</label><input class="form__input" name="project_quantity" id="project_quantity" type="number" min="1" step="1" value="{{ values.get('project_quantity','100') }}" required></div>
+        </div>
+        <div class="form__row">
+            <div class="form__col"><label class="form__label" for="project_unit_price">Precio unitario estimado (USD)</label><input class="form__input" name="project_unit_price" id="project_unit_price" type="number" min="0" step="any" value="{{ values.get('project_unit_price','0') }}" required></div>
+            <div class="form__col"><label class="form__label" for="project_budget">Presupuesto disponible (USD)</label><input class="form__input" name="project_budget" id="project_budget" type="number" min="0" step="any" value="{{ values.get('project_budget','0') }}" required></div>
+        </div>
+        <label class="form__label" for="product_description">Materiales, uso, características relevantes</label><textarea class="form__input" id="product_description" name="product_description" rows="2" maxlength="2000" placeholder="Ej. Audífonos con batería recargable y conectividad inalámbrica...">{{ values.get('product_description','') }}</textarea>
+        <p class="tr-form-warning">El sistema identifica riesgos posibles por categoría; ninguna alerta significa un permiso concedido o confirmación de libre importación.</p>
         <label class="form__label" for="notes">Notas</label>
         <textarea class="form__input" id="notes" name="notes" rows="4" placeholder="Observaciones, acuerdos o condiciones especiales...">{{ values.get('notes', '') }}</textarea>
 

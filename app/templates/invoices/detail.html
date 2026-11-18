@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Factura {{ invoice.number }} · TradeLab{% endblock %}
+{% block title %}Factura {{ invoice.number }} · International Trade{% endblock %}
 
 {% block content %}
 {% set symbol = invoice.currency.symbol if invoice.currency else '$' %}
@@ -130,7 +130,7 @@
             <div class="sheet__brand">
                 <span class="sheet__mark">TL</span>
                 <div>
-                    <strong>TradeLab</strong>
+                    <strong>International Trade</strong>
                     <span>Operaciones de comercio exterior</span>
                 </div>
             </div>
@@ -150,7 +150,7 @@
         <div class="sheet__parties">
             <section>
                 <h3 class="sheet__block-title">Emisor</h3>
-                <p><strong>TradeLab</strong></p>
+                <p><strong>International Trade</strong></p>
                 <p>Planificación de comercio exterior</p>
                 <p>Quito · Ecuador</p>
             </section>
@@ -244,7 +244,7 @@
         {% endif %}
 
         <footer class="sheet__foot">
-            <span>TradeLab · Documento generado electrónicamente</span>
+            <span>International Trade · Documento generado electrónicamente</span>
             <span>{{ invoice.number }} · {{ invoice.issue_date|datefmt }}</span>
         </footer>
     </article>

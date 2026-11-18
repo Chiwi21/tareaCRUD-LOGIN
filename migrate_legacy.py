@@ -13,6 +13,8 @@ ejecutarlo: si detecta el esquema nuevo, no borra nada.
 
 from __future__ import annotations
 
+import os
+
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -118,6 +120,12 @@ def parse_date(value) -> date:
 
 
 def migrate() -> None:
+    if os.getenv("APP_ENV") == "production":
+        raise SystemExit(
+            "Migración heredada bloqueada en producción: este procedimiento puede "
+            "reconstruir tablas. Realiza primero un respaldo y una migración "
+            "revisada manualmente."
+        )
     if not is_legacy_schema():
         print("No se detectó el esquema anterior. Nada que migrar.")
         from app.database import init_database

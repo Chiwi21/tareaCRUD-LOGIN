@@ -691,8 +691,9 @@ class TradeLabFlowTests(unittest.TestCase):
         )
         self.assert_redirect(response, "/dashboard")
 
+        # Los importadores ahora pueden crear sus propias operaciones.
+        self.assertEqual(client.get('/operations/new').status_code, 200)
         for path in (
-            "/operations/new",
             "/catalogs",
             "/documents",
             "/alerts",

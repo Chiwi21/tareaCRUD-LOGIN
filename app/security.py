@@ -23,7 +23,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | 
 
 
 def require_login(user: User | None = Depends(get_current_user)) -> User:
-    if user is None:
+    if user is None or not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No autenticado",

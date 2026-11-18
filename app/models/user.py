@@ -26,6 +26,12 @@ class User(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
+    email_contact: Mapped["UserEmail | None"] = relationship(
+        back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
+    support_tickets: Mapped[list["SupportTicket"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     company: Mapped[Company | None] = relationship(back_populates="users")
     operations: Mapped[list[Operation]] = relationship(
         back_populates="user",

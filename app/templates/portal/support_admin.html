@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}Solicitudes · International Trade{% endblock %}
+{% block content %}
+<section class="it-content-page"><div class="it-page-heading"><div><span class="it-eyebrow">ADMINISTRACIÓN</span><h1>Solicitudes de soporte</h1><p>Consultas registradas por los usuarios.</p></div></div><div class="it-panel">{% if tickets %}<div class="it-tickets">{% for ticket in tickets %}<article class="it-admin-ticket"><div><strong>#{{ ticket.id }} · {{ ticket.subject }}</strong><small>{{ ticket.user.full_name or ticket.user.username }} · {{ ticket.created_at|datefmt }} · {{ ticket.status }}</small><p>{{ ticket.message }}</p></div></article>{% endfor %}</div>{% else %}<div class="it-empty"><strong>No hay solicitudes todavía</strong></div>{% endif %}</div></section>
+{% endblock %}

@@ -1,0 +1,11 @@
+INTERNATIONAL TRADE / IMAGENES DE ENTIDADES
+
+Los archivos .svg de esta carpeta son marcadores propios, NO logos oficiales.
+Para usar fotos/logos autorizados:
+  1. Guarda la imagen aquí con nombre senAE.jpg o la denominación que elijas.
+  2. Abre app/templates/portal/information.html.
+  3. Sustituye la ruta /static/img/entities/senae.svg por /static/img/entities/senae.jpg.
+  4. Actualiza el navegador con Ctrl+F5.
+También puedes reemplazar directamente cada .svg con otro .svg válido con el mismo nombre.
+Recomendación: fotografías WebP 800x420, comprimidas. No subir imágenes de Google sin licencia.
+En Render, estos archivos deben versionarse en Git o subirse a almacenamiento persistente externo.

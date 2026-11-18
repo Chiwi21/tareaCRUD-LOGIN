@@ -19,6 +19,8 @@ from app.models.document import Document
 from app.models.logistics import Carrier, Shipment
 from app.models.operation import Operation, OperationItem, OperationStatusHistory
 from app.models.user import User
+from app.models.portal import SupportTicket, UserEmail
+from app.models.planning import OperationTradeProfile, FreightComparison
 
 __all__ = [
     "Alert",
@@ -43,4 +45,8 @@ __all__ = [
     "Product",
     "Shipment",
     "User",
+    "UserEmail",
+    "SupportTicket",
+    "OperationTradeProfile",
+    "FreightComparison",
 ]

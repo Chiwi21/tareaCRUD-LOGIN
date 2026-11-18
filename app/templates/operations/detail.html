@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ operation.code }} · TradeLab{% endblock %}
+{% block title %}{{ operation.code }} · International Trade{% endblock %}
 
 {% macro cost_line_form(scenario) %}
 <details class="inline-details">
@@ -73,6 +73,17 @@
         </div>
     </div>
 
+
+    <section class="tr-op-diagnosis tr-box" id="diagnostico">
+      <div class="tr-box-header"><div><span class="tr-step">SEMÁFORO REGULATORIO</span><h2>Diagnóstico preliminar de requisitos</h2></div><a class="tr-secondary" href="/operations/{{ operation.id }}/comparar">Comparar transporte →</a></div>
+      <div class="tr-op-summary"><div><span>Producto</span><strong>{{ trade_profile.product_name if trade_profile and trade_profile.product_name else 'No especificado' }}</strong></div><div><span>Categoría</span><strong>{{ category_labels.get(trade_profile.category,'Sin clasificar') if trade_profile else 'Sin clasificar' }}</strong></div><div><span>Subpartida indicada</span><strong>{{ trade_profile.hs_code if trade_profile and trade_profile.hs_code else 'Pendiente de revisión' }}</strong></div><div><span>Presupuesto</span><strong>$ {{ trade_profile.budget|money if trade_profile else '0.00' }}</strong></div></div>
+      <p class="tr-legal-banner"><b>Estado: diagnóstico NO verificado.</b> Estas alertas se generan por categoría comercial y no determinan si una mercancía está autorizada o libre de controles. Confirma la subpartida y la normativa antes de pagar o embarcar.</p>
+      <div class="tr-checklist">
+      {% for rule in regulatory_checklist %}<article class="tr-requirement"><span class="tr-semaforo {{ 'tr-semaforo--missing' if rule.level=='pendiente' else 'tr-semaforo--review' }}">{{ 'PENDIENTE' if rule.level=='pendiente' else 'REVISAR' }}</span><div><h3>{{ rule.agency }} · {{ rule.title }}</h3><p>{{ rule.explanation }}</p><div><small>{{ rule.step }}</small><a href="{{ rule.source }}" target="_blank" rel="noopener noreferrer">Consultar fuente oficial ↗</a></div></div></article>{% endfor %}
+      </div>
+      <p class="tr-fineprint">El diagnóstico no sustituye una resolución de clasificación arancelaria, certificación, permiso ni asesoría de aduanas. Las advertencias se actualizan en pantalla según los datos guardados.</p>
+    </section>
+    <section class="tr-box tr-compare-shortcut"><div><span class="tr-step">DECISIÓN LOGÍSTICA</span><h2>¿Te conviene avión o barco?</h2><p>Crea escenarios de transporte aéreo, carga consolidada LCL o contenedor completo FCL. Compara peso cobrable, flete, tributos, desembolso y costo por unidad.</p></div><a class="tr-primary tr-inline-button" href="/operations/{{ operation.id }}/comparar">Comparar escenarios ({{ freight_comparison_count }}) →</a></section>
     <dl class="detail detail--grid">
         <div class="detail__item">
             <dt class="detail__label">Responsable</dt>

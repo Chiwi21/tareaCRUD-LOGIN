@@ -1,218 +1,41 @@
 {% extends "base.html" %}
-
-{% block title %}Panel · TradeLab{% endblock %}
-
+{% block title %}Inicio · International Trade{% endblock %}
 {% block content %}
-<section class="page">
-    <div class="masthead">
-        <div class="masthead__bar">
-            <span>TradeLab / Panel general</span>
-            <span>Responsable: {{ user.username }}</span>
-            <span>Perfil: {{ ROLES[user.role] }}</span>
-        </div>
-        <div class="masthead__body">
-            <div>
-                <p class="masthead__kicker">Centro de operaciones</p>
-                <h1 class="masthead__title">Panel de control</h1>
-                <p class="masthead__note">
-                    {{ 'Vista global de TradeLab: operaciones, costos, documentos y alertas.' if is_admin else 'Sus operaciones asignadas, documentos y alertas.' }}
-                </p>
-            </div>
-            <div class="masthead__actions">
-                {% if is_admin %}
-                <a class="btn btn--primary" href="/operations/new">Nueva operación</a>
-                <form method="post" action="/alerts/generate">
-                    <button class="btn btn--outline" type="submit">Evaluar alertas</button>
-                </form>
-                {% else %}
-                <a class="btn btn--primary" href="/operations">Ver mis operaciones</a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <div class="kpi-grid">
-        <article class="kpi">
-            <span class="kpi__label">Operaciones</span>
-            <strong class="kpi__value">{{ summary.operations_total }}</strong>
-            <span class="kpi__hint">{{ summary.operations_open }} en curso</span>
-        </article>
-        <article class="kpi">
-            <span class="kpi__label">Facturado</span>
-            <strong class="kpi__value">$ {{ summary.invoiced_total|money }}</strong>
-            <span class="kpi__hint">{{ summary.paid_total|money }} cobrado</span>
-        </article>
-        <article class="kpi kpi--warning">
-            <span class="kpi__label">Saldo pendiente</span>
-            <strong class="kpi__value">$ {{ summary.balance_total|money }}</strong>
-            <span class="kpi__hint">Por cobrar</span>
-        </article>
-        <article class="kpi {% if summary.open_alerts %}kpi--danger{% endif %}">
-            <span class="kpi__label">Alertas abiertas</span>
-            <strong class="kpi__value">{{ summary.open_alerts }}</strong>
-            <span class="kpi__hint">Requieren revisión</span>
-        </article>
-        <article class="kpi">
-            <span class="kpi__label">Empresas</span>
-            <strong class="kpi__value">{{ summary.companies }}</strong>
-            <span class="kpi__hint">Clientes y proveedores</span>
-        </article>
-        <article class="kpi">
-            <span class="kpi__label">Productos</span>
-            <strong class="kpi__value">{{ summary.products }}</strong>
-            <span class="kpi__hint">En catálogo</span>
-        </article>
-    </div>
-
-    <div class="grid-2">
-        <section class="section">
-            <div class="section__header">
-                <h2 class="section__title">Operaciones por estado</h2>
-            </div>
-            {% if status_rows %}
-            <div class="bar-list">
-                {% for row in status_rows %}
-                <div class="bar-row">
-                    <span class="bar-row__label">{{ row.label }}</span>
-                    <div class="bar-row__track"><span class="bar-row__fill bar-row__fill--{{ row.status|lower }}" style="width: {{ row.percent }}%"></span></div>
-                    <span class="bar-row__value">{{ row.count }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="empty">Todavía no hay operaciones registradas.</p>
-            {% endif %}
-        </section>
-
-        <section class="section">
-            <div class="section__header">
-                <h2 class="section__title">Importaciones vs. exportaciones</h2>
-            </div>
-            {% if type_rows %}
-            <div class="bar-list">
-                {% for row in type_rows %}
-                <div class="bar-row">
-                    <span class="bar-row__label">{{ row.label }}</span>
-                    <div class="bar-row__track"><span class="bar-row__fill bar-row__fill--{{ row.type|lower }}" style="width: {{ row.percent }}%"></span></div>
-                    <span class="bar-row__value">{{ row.count }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="empty">Sin datos para graficar.</p>
-            {% endif %}
-        </section>
-    </div>
-
-    <section class="section">
-        <div class="section__header">
-            <h2 class="section__title">Operaciones recientes</h2>
-            <a class="btn btn--outline btn--sm" href="/operations">Ver todas</a>
-        </div>
-        {% if recent_operations %}
-        <div class="table-wrapper">
-            <table class="table table--compact">
-                <thead>
-                    <tr>
-                        <th>Código</th>
-                        <th>Empresa</th>
-                        <th>Tipo</th>
-                        <th>Ruta</th>
-                        <th>Estado</th>
-                        <th>Valor productos</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for operation in recent_operations %}
-                    <tr>
-                        <td><a class="link" href="/operations/{{ operation.id }}">{{ operation.code }}</a></td>
-                        <td>{{ operation.company.name if operation.company else '—' }}</td>
-                        <td><span class="badge badge--{{ operation.type|lower }}">{{ OPERATION_TYPES[operation.type] }}</span></td>
-                        <td class="muted">
-                            {{ operation.origin_port.name if operation.origin_port else '—' }}
-                            →
-                            {{ operation.destination_port.name if operation.destination_port else '—' }}
-                        </td>
-                        <td><span class="chip chip--{{ operation.status|status_class }}">{{ OPERATION_STATUSES[operation.status] }}</span></td>
-                        <td class="money">{{ operation.currency.symbol if operation.currency else '$' }} {{ operation.product_subtotal|money }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <p class="empty">No hay operaciones todavía.</p>
-        {% endif %}
+<div class="it-dashboard">
+  <div class="it-page-heading"><div><span class="it-eyebrow">PANEL PERSONAL</span><h1>Bienvenido, {{ (user.full_name or user.username).split(' ')[0] }} <span class="it-wave">✦</span></h1><p>Un lugar para consultar tus operaciones, organizar documentos y planificar el costo de una importación.</p></div><span class="it-breadcrumb">Inicio / Dashboard</span></div>
+  <section class="it-hero" aria-labelledby="it-hero-title">
+    <div class="it-hero-content"><span class="it-hero-kicker">INTERNATIONAL TRADE · ECUADOR</span><h2 id="it-hero-title">Tu próxima importación empieza con información clara.</h2><p>Compara costos estimados, entiende tus operaciones y toma decisiones mejor fundamentadas.</p><div class="it-hero-buttons"><a class="it-hero-primary" href="/herramientas/calculadora">Calcular importación <span>→</span></a><a class="it-hero-secondary" href="/informacion">Explorar recursos</a></div></div>
+    <div class="it-hero-art" aria-hidden="true"><div class="it-map-dots"></div><div class="it-route it-route-a"></div><div class="it-route it-route-b"></div><span class="it-map-tag it-map-origin">CHINA</span><span class="it-map-tag it-map-destination">ECUADOR</span><div class="it-container-visual"><span></span><span></span><span></span><span></span></div><div class="it-hero-ship">▰</div><span class="it-floating-indicator">COMERCIO GLOBAL ↗</span></div>
+  </section>
+  <div class="it-stats">
+    <article class="it-stat"><span class="it-stat-icon it-stat-icon-blue">▦</span><div><span>Operaciones registradas</span><strong>{{ summary.operations_total }}</strong><small>{{ summary.operations_open }} en proceso</small></div></article>
+    <article class="it-stat"><span class="it-stat-icon it-stat-icon-purple">▤</span><div><span>Productos del catálogo</span><strong>{{ summary.products }}</strong><small>Referencias disponibles</small></div></article>
+    <article class="it-stat"><span class="it-stat-icon it-stat-icon-green">$</span><div><span>Total facturado</span><strong>$ {{ summary.invoiced_total|money }}</strong><small>De operaciones registradas</small></div></article>
+    <article class="it-stat"><span class="it-stat-icon it-stat-icon-orange">!</span><div><span>Alertas abiertas</span><strong>{{ summary.open_alerts }}</strong><small>Requieren revisión</small></div></article>
+  </div>
+  <div class="it-dashboard-grid">
+    <section class="it-panel it-tools-panel"><div class="it-panel-heading"><div><h2>Herramientas principales</h2><p>Explora los módulos de tu plataforma</p></div><span class="it-mini-label">CENTRO DE RECURSOS</span></div>
+      <div class="it-tool-grid">
+        <a class="it-tool" href="/herramientas/calculadora"><span class="it-tool-icon" style="--it-tool-accent:#222">▦</span><strong>Calculadora de importación</strong><small>Estima CIF, tributos y desembolso total.</small><span class="it-tool-action">Abrir herramienta →</span></a>
+        <a class="it-tool" href="/operations"><span class="it-tool-icon" style="--it-tool-accent:#6757d8">▣</span><strong>Mis operaciones</strong><small>Consulta tus procesos de importación y exportación.</small><span class="it-tool-action">Ver operaciones →</span></a>
+        <a class="it-tool" href="/informacion"><span class="it-tool-icon" style="--it-tool-accent:#444">◈</span><strong>Aranceles y requisitos</strong><small>Glosario y entidades oficiales.</small><span class="it-tool-action">Consultar recursos →</span></a>
+        <a class="it-tool" href="/ayuda"><span class="it-tool-icon" style="--it-tool-accent:#e28b32">?</span><strong>Centro de ayuda</strong><small>Envía consultas y revisa tus solicitudes.</small><span class="it-tool-action">Solicitar ayuda →</span></a>
+      </div>
     </section>
-
-    <div class="grid-2">
-        <section class="section">
-            <div class="section__header">
-                <h2 class="section__title">Productos con mayor valor</h2>
-            </div>
-            {% if top_products %}
-            <ul class="rank-list">
-                {% for product in top_products %}
-                <li class="rank-list__item">
-                    <div>
-                        <strong>{{ product.name }}</strong>
-                        <span class="muted">{{ product.sku }} · {{ product.quantity|money }} unidades</span>
-                    </div>
-                    <span class="money">$ {{ product.subtotal|money }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="empty">Agregue productos a las operaciones para ver el ranking.</p>
-            {% endif %}
-        </section>
-
-        <section class="section">
-            <div class="section__header">
-                <h2 class="section__title">Próximos embarques</h2>
-                <a class="btn btn--outline btn--sm" href="/shipments">Ver todos</a>
-            </div>
-            {% if upcoming_shipments %}
-            <ul class="rank-list">
-                {% for shipment in upcoming_shipments %}
-                <li class="rank-list__item">
-                    <div>
-                        <strong>{{ shipment.operation.code }}</strong>
-                        <span class="muted">{{ shipment.carrier.name if shipment.carrier else 'Sin transportista' }} · ETA {{ shipment.estimated_arrival|datefmt }}</span>
-                    </div>
-                    <span class="chip chip--{{ shipment.status|status_class }}">{{ SHIPMENT_STATUSES[shipment.status] }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="empty">No hay embarques programados.</p>
-            {% endif %}
-        </section>
-    </div>
-
-    <section class="section">
-        <div class="section__header">
-            <h2 class="section__title">Alertas abiertas</h2>
-            <a class="btn btn--outline btn--sm" href="/alerts">Gestionar alertas</a>
-        </div>
-        {% if alerts %}
-        <div class="alert-feed">
-            {% for alert in alerts %}
-            <article class="alert-card alert-card--{{ alert.severity|lower }}">
-                <div class="alert-card__body">
-                    <div class="alert-card__top">
-                        <span class="chip chip--{{ alert.severity|status_class }}">{{ SEVERITIES[alert.severity] }}</span>
-                        {% if alert.operation %}<a class="link" href="/operations/{{ alert.operation.id }}">{{ alert.operation.code }}</a>{% endif %}
-                    </div>
-                    <h3 class="alert-card__title">{{ alert.title }}</h3>
-                    <p class="alert-card__text">{{ alert.message }}</p>
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-        {% else %}
-        <p class="empty">No hay alertas abiertas. Ejecute “Evaluar alertas” para revisar las reglas.</p>
-        {% endif %}
+    <section class="it-panel it-quick-panel"><div class="it-panel-heading"><div><h2>Empieza por aquí</h2><p>¿Quieres conocer cuánto te costaría importar?</p></div></div>
+      <div class="it-quick-illustration"><div class="it-quick-circle">$</div><div><strong>Simula antes de comprar</strong><p>Introduce el costo del producto, flete y tasas que necesitas evaluar.</p></div></div>
+      <div class="it-quick-points"><span><b>01</b> Valor de mercancía y flete</span><span><b>02</b> Impuestos editables</span><span><b>03</b> Costo estimado por unidad</span></div>
+      <a class="it-quick-cta" href="/herramientas/calculadora">Abrir calculadora <span>→</span></a><p class="it-quick-note">Los resultados son estimaciones, no una liquidación oficial.</p>
     </section>
-</section>
+  </div>
+  <div class="it-dashboard-grid it-dashboard-grid--bottom">
+    <section class="it-panel"><div class="it-panel-heading"><div><h2>Operaciones recientes</h2><p>{% if is_admin %}Actividad global de la plataforma{% else %}Operaciones asociadas a tu cuenta{% endif %}</p></div><a href="/operations">Ver todas →</a></div>
+      {% if recent_operations %}<div class="it-table-scroller"><table class="it-table"><thead><tr><th>Operación</th><th>Tipo</th><th>Estado</th><th>Valor productos</th></tr></thead><tbody>{% for op in recent_operations %}<tr><td><a href="/operations/{{ op.id }}">{{ op.code }}</a><small>{{ op.company.name if op.company else 'Sin empresa' }}</small></td><td>{{ OPERATION_TYPES.get(op.type, op.type) }}</td><td><span class="it-state-pill">{{ OPERATION_STATUSES.get(op.status, op.status) }}</span></td><td>$ {{ op.product_subtotal|money }}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}<div class="it-empty"><span>◫</span><strong>Aún no hay operaciones</strong><p>Las operaciones que se asignen a tu cuenta se mostrarán aquí.</p></div>{% endif %}
+    </section>
+    <section class="it-panel"><div class="it-panel-heading"><div><h2>Próximas funciones</h2><p>La hoja de ruta de International Trade</p></div><span class="it-mini-label">EN DESARROLLO</span></div>
+      <div class="it-roadmap"><div><span>01</span><div><strong>Operaciones y diagnóstico</strong><small>Guarda tu producto y consulta alertas.</small></div><span class="it-roadmap-tag">Disponible</span></div><div><span>02</span><div><strong>Clasificación arancelaria</strong><small>Consulta de subpartidas verificadas.</small></div><span class="it-roadmap-tag">Próximamente</span></div><div><span>03</span><div><strong>Comparador de escenarios</strong><small>En el detalle de cada operación.</small></div><span class="it-roadmap-tag">Disponible</span></div></div>
+    </section>
+  </div>
+</div>
 {% endblock %}

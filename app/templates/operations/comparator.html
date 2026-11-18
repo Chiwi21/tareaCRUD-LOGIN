@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}Comparar transporte · {{ operation.code }}{% endblock %}
+{% macro input_field(key,label,help='',required=false) %}<label class="tr-field"><span>{{ label }}</span><input type="number" name="{{ key }}" min="0" step="any" value="{{ values.get(key,'') }}" {% if required %}required{% endif %}>{% if help %}<small>{{ help }}</small>{% endif %}</label>{% endmacro %}
+{% block content %}
+<section class="tr-page">
+ <div class="tr-heading"><div><div class="tr-overline">OPERACIÓN {{ operation.code }} / COMPARADOR</div><h1>Comparar escenarios logísticos</h1><p>Prueba cantidades y cotizaciones aéreas, LCL o FCL para el mismo producto. Encuentra el costo puesto en destino.</p></div><a class="tr-secondary" href="/operations/{{ operation.id }}">← Volver a la operación</a></div>
+ <div class="tr-callout"><strong>Tarifas manuales:</strong> introduce valores de una cotización del agente de carga. El simulador no consulta tarifas ni fechas en vivo. Un flete aéreo puede cobrar el mayor entre peso real y volumétrico; LCL normalmente usa W/M y FCL un precio por contenedor. Los recargos y condiciones varían por transportista.</div>
+ <div class="tr-comparison-layout">
+  <div class="tr-box"><div class="tr-box-header"><div><span class="tr-step">A / B</span><h2>Crear escenario de comparación</h2></div></div>
+  {% if error %}<div class="alert alert--error">{{ error }}</div>{% endif %}
+  <form method="post" action="/operations/{{ operation.id }}/comparar" class="tr-compare-form">
+    <div class="tr-form-section"><h3>Identificación del escenario</h3><div class="tr-input-grid">
+      <label class="tr-field"><span>Nombre del escenario</span><input type="text" name="name" maxlength="100" required value="{{ values.get('name','Escenario A') }}" placeholder="Escenario A · Aéreo"></label>
+      <label class="tr-field"><span>Tipo de transporte</span><select name="mode" required>{% for code,label in modes.items() %}<option value="{{ code }}" {% if values.get('mode')==code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select><small>La tarifa se expresa por kg cobrable, W/M o contenedor.</small></label>
+      {{ input_field('quantity','Cantidad de unidades','Puedes comparar 100, 500 o 1.000 unidades',true) }}
+      {{ input_field('unit_price','Precio por unidad (USD)','Supuesto FOB',true) }}
+      {{ input_field('budget','Presupuesto (USD)','Monto disponible',true) }}
+      {{ input_field('transit_days','Tiempo cotizado (días)','Opcional: no se estima automáticamente') }}
+    </div></div>
+    <div class="tr-form-section"><h3>Datos físicos de la carga</h3><div class="tr-input-grid tr-input-grid--4">
+      {{ input_field('packages','Bultos / cajas','Entero',true) }}
+      {{ input_field('weight_kg','Peso por bulto (kg)','Incluye embalaje',true) }}
+      {{ input_field('length_cm','Largo por bulto (cm)','Dimensiones externas',true) }}
+      {{ input_field('width_cm','Ancho por bulto (cm)','Dimensiones externas',true) }}
+      {{ input_field('height_cm','Alto por bulto (cm)','Dimensiones externas',true) }}
+    </div></div>
+    <div class="tr-form-section"><h3>Cotización y recargos</h3><div class="tr-input-grid">
+      {{ input_field('freight_rate','Tarifa: USD/kg, USD/W/M o USD/contenedor','Introduce la tarifa que corresponda a la modalidad',true) }}
+      {{ input_field('minimum_freight','Flete mínimo facturable (USD)','Si no existe, ingresa 0') }}
+      {{ input_field('freight_surcharges','Recargos de carga (USD)','Combustible, seguridad, manejo de origen') }}
+      {{ input_field('origin_charges','Otros gastos de origen (USD)','Que no estén incluidos en FOB') }}
+      {{ input_field('insurance_pct','Seguro (%)','% de mercancía + origen + flete') }}
+      {{ input_field('insurance_amount','Seguro fijo (USD)','Opcional, prevalece sobre el porcentaje') }}
+    </div></div>
+    <div class="tr-form-section"><h3>Impuestos y entrega a destino</h3><div class="tr-input-grid tr-input-grid--4">
+      {{ input_field('duty_pct','Arancel (%)','Porcentaje verificado') }}
+      {{ input_field('fodinfa_pct','FODINFA (%)','Ejemplo 0,5') }}
+      {{ input_field('vat_pct','IVA (%)','Según normativa') }}
+      {{ input_field('ice','ICE (USD)','Si corresponde') }}
+      {{ input_field('isd','ISD (USD)','Si corresponde') }}
+      {{ input_field('destination_charges','Gastos terminal destino (USD)','THC, desconsolidación, aeropuerto') }}
+      {{ input_field('broker','Despacho aduanero (USD)','Honorarios / trámites') }}
+      {{ input_field('delivery','Transporte interno (USD)','Hasta bodega') }}
+      {{ input_field('other','Otros cargos (USD)','Bodegaje, inspección, extras') }}
+    </div></div>
+    <button type="submit" class="tr-primary">Guardar y comparar escenario</button>
+   </form>
+  </div>
+  <aside class="tr-box tr-compare-instructions"><h2>¿Cómo comparar correctamente?</h2>
+    <ol><li>Solicita al proveedor el valor de mercancía bajo un Incoterm definido.</li><li>Pide al transportista una cotización aérea o marítima desglosada.</li><li>Ingresa <strong>peso bruto, dimensiones y número de bultos</strong>.</li><li>Guarda un escenario aéreo y otro LCL/FCL.</li><li>Compara el <strong>desembolso total</strong>, el costo por unidad y el tiempo cotizado.</li></ol>
+    <div class="tr-help-note"><strong>Ejemplo de unidades de cobro</strong><p><b>Aéreo:</b> mayor de kg bruto y kg volumétrico (divisor 6000 como referencia).</p><p><b>LCL:</b> mayor entre CBM y toneladas métricas; se aplica aquí mínimo de 1 W/M a modo de supuesto.</p><p><b>FCL:</b> tarifa por contenedor.</p></div>
+    <p class="tr-fineprint">Revisa límites dimensionales, baterías, productos peligrosos, fechas de tránsito, gastos portuarios y posibles inspecciones. No existe garantía de que una modalidad esté disponible para cualquier mercancía.</p>
+  </aside>
+ </div>
+ <section class="tr-box tr-comparison-results" id="escenarios"><div class="tr-box-header"><div><span class="tr-step">RESULTADOS</span><h2>Escenarios guardados ({{ scenarios|length }})</h2></div><small>Comparación de desembolso estimado y costo unitario</small></div>
+ {% if scenarios %}<div class="tr-scenario-grid">
+ {% for item in scenarios %}{% if item.result %}{% set r=item.result %}
+ <article class="tr-scenario"><div class="tr-scenario-title"><div><small>ESCENARIO {{ loop.index }} · {{ r.mode_name }}</small><h3>{{ item.scenario.name }}</h3></div>{% if item.scenario.id==cheapest_id %}<span class="tr-best">Menor desembolso</span>{% endif %}</div>
+ <div class="tr-scenario-total"><span>Desembolso total</span><strong>$ {{ r.total|money }}</strong><small>$ {{ r.unit_total|money }} por unidad · {{ r.quantity }} unidades</small></div>
+ <dl><div><dt>CBM</dt><dd>{{ r.cbm }}</dd></div><div><dt>Peso físico</dt><dd>{{ r.gross_weight }} kg</dd></div><div><dt>Peso volumétrico aéreo</dt><dd>{{ r.volumetric_weight }} kg</dd></div><div><dt>Base de cobro</dt><dd>{{ r.chargeable }} {{ r.chargeable_unit }}</dd></div><div><dt>Flete calculado</dt><dd>$ {{ r.freight|money }}</dd></div><div><dt>Recargos de carga</dt><dd>$ {{ r.freight_surcharges|money }}</dd></div><div><dt>Base CIF</dt><dd>$ {{ r.cif|money }}</dd></div><div><dt>Tributos</dt><dd>$ {{ r.taxes|money }}</dd></div><div><dt>Presupuesto</dt><dd>{% if r.within_budget %}Suficiente{% else %}Faltan $ {{ r.budget_shortfall|money }}{% endif %}</dd></div></dl>
+ <p class="tr-fineprint">Tiempo: {{ r.transit_days ~ ' días cotizados' if r.transit_days else 'no cotizado' }}. El cálculo puede variar según ajustes de aduana.</p>
+ <form method="post" action="/operations/{{ operation.id }}/comparar/{{ item.scenario.id }}/delete" onsubmit="return confirm('¿Eliminar el escenario?');"><button type="submit" class="tr-text-btn">Eliminar escenario</button></form></article>
+ {% else %}<p>Este escenario contiene datos inválidos. Revísalo o elimínalo.</p>{% endif %}{% endfor %}</div>
+ <p class="tr-fineprint">El escenario con menor desembolso no siempre es el de menor costo unitario si las cantidades son diferentes. Los precios, cantidades y tributos son supuestos o cotizaciones que introduces manualmente.</p>
+ {% else %}<div class="tr-empty-scenarios">Todavía no has guardado escenarios. Crea el Escenario A con transporte aéreo y el B con marítimo para compararlos lado a lado.</div>{% endif %}
+ </section>
+</section>
+{% endblock %}

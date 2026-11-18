@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Guías y entidades · International Trade{% endblock %}
+{% block content %}
+<section class="tr-page">
+ <div class="tr-heading"><div><div class="tr-overline">CENTRO DE INFORMACIÓN</div><h1>Guías y entidades del Estado</h1><p>Identifica organismos que intervienen en comercio exterior y aprende los conceptos para importar desde China a Ecuador.</p></div><span class="tr-date-tag">Biblioteca práctica</span></div>
+ <div class="tr-callout">Directorio orientativo: comprueba requisitos vigentes en la página oficial de cada entidad. Una categoría o una subpartida sin verificar no confirma libre importación.</div>
+ <section class="tr-box tr-entities"><div class="tr-box-header"><div><span class="tr-step">DIRECTORIO</span><h2>Entidades y organismos de consulta</h2></div><small>Puedes sustituir las imágenes en <code>app/static/img/entities/</code></small></div>
+ <div class="tr-entity-grid">
+ {% for slug,name,description,url,img_name in [
+ ('senae','SENAE','Aduana, clasificación arancelaria, ECUAPASS y tributos.','https://www.aduana.gob.ec/','senae.svg'),
+ ('sri','SRI','RUC, impuestos, IVA y obligaciones tributarias.','https://www.sri.gob.ec/','sri.svg'),
+ ('inen','INEN','Reglamentación técnica y etiquetado cuando corresponde.','https://www.normalizacion.gob.ec/','inen.svg'),
+ ('sae','SAE','Acreditación y evaluación de la conformidad.','https://www.acreditacion.gob.ec/','sae.svg'),
+ ('arcsa','ARCSA','Productos sujetos a regulación sanitaria.','https://www.controlsanitario.gob.ec/','arcsa.svg'),
+ ('agrocalidad','Agrocalidad','Control sanitario y fitosanitario agropecuario.','https://www.agrocalidad.gob.ec/','agrocalidad.svg'),
+ ('arcotel','ARCOTEL','Requisitos de equipos de telecomunicaciones cuando apliquen.','https://www.arcotel.gob.ec/','arcotel.svg'),
+ ('ministerio','Ministerio de Producción','Política comercial e información de comercio exterior.','https://www.produccion.gob.ec/','ministerio.svg')
+ ] %}<a class="tr-entity" href="{{ url }}" target="_blank" rel="noopener noreferrer"><div class="tr-entity-photo"><img src="/static/img/entities/{{ img_name }}" alt="Ilustración identificativa de {{ name }}" loading="lazy"></div><div class="tr-entity-content"><strong>{{ name }}</strong><p>{{ description }}</p><span>Sitio institucional ↗</span></div></a>{% endfor %}
+ </div><p class="tr-fineprint">Las imágenes incluidas son marcadores visuales, no logotipos oficiales ni señales de respaldo institucional. Puedes reemplazarlas por fotografías o recursos autorizados y actualizar el nombre del archivo en esta plantilla.</p>
+ </section>
+ <section class="tr-box tr-glossary" id="glosario"><div class="tr-box-header"><div><span class="tr-step">GLOSARIO</span><h2>Conceptos fundamentales de importación</h2></div><small>{{ glossary|length }} explicaciones</small></div>
+ <label class="tr-search"><span>Buscar concepto</span><input type="search" id="tr-glossary-search" placeholder="Ej.: FOB, FODINFA, CBM, arancel, packing list..." aria-label="Buscar conceptos"></label>
+ <div class="tr-glossary-list" data-glossary>
+ {% for group in ['Términos comerciales','Aduanas y tributos','Logística','Documentación','Rentabilidad'] %}
+ <section class="tr-glossary-group" data-glossary-group><h3>{{ group }}</h3>
+ {% for grp,title,definition,tip in glossary if grp == group %}<details class="tr-glossary-entry" data-glossary-entry><summary><span>{{ title }}</span><span class="tr-expand-symbol">+</span></summary><div class="tr-glossary-body"><p>{{ definition }}</p><div><b>En la práctica:</b> {{ tip }}</div></div></details>{% endfor %}
+ </section>{% endfor %}
+ </div>
+ </section>
+ <section class="tr-box tr-resources"><h2>Fuentes para continuar investigando</h2><p>Antes de importar consulta la subpartida nacional, los documentos de control previo y los requisitos particulares de tu mercancía.</p><div class="tr-source-links"><a href="https://www.aduana.gob.ec/servicio-al-ciudadano/para-importar/" target="_blank" rel="noopener noreferrer">Guía oficial SENAE</a><a href="https://mesadeservicios.aduana.gob.ec/arancel/" target="_blank" rel="noopener noreferrer">Consulta de arancel</a><a href="https://www.normalizacion.gob.ec/preguntas-frecuentes/" target="_blank" rel="noopener noreferrer">Consulta INEN</a></div></section>
+</section>
+<script src="/static/js/glossary.js" defer></script>
+{% endblock %}

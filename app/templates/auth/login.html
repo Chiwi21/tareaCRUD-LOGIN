@@ -1,61 +1,77 @@
 {% extends "base.html" %}
-
-{% block title %}Iniciar sesión · TradeLab{% endblock %}
-
-{% block body_class %}auth-page{% endblock %}
-
+{% block title %}Iniciar sesión · International Trade{% endblock %}
+{% block body_class %}it-auth-page{% endblock %}
 {% block content %}
-<section class="auth">
-    <aside class="auth__aside">
-        <div class="auth__brand">
-            <span class="auth__logo" aria-hidden="true">TL</span>
-            <span class="auth__brand-name">Trade<span>Lab</span></span>
-        </div>
-
-        <div class="auth__manifesto">
-            <p class="auth__kicker">Mesa de operaciones</p>
-            <h1 class="auth__display">Comercio exterior, en orden.</h1>
-            <p class="auth__lede">Importaciones y exportaciones con costos, documentos, embarques y facturación en un solo expediente.</p>
-        </div>
-
-        <ol class="auth__index">
-            <li><span>01</span> Operaciones</li>
-            <li><span>02</span> Escenarios de costo</li>
-            <li><span>03</span> Documentos</li>
-            <li><span>04</span> Embarques</li>
-            <li><span>05</span> Facturación</li>
-        </ol>
-
-        <p class="auth__foot">Ingeniería Web · 2026</p>
-    </aside>
-
-    <div class="auth__panel">
-        <div class="auth__form-wrap">
-            <p class="auth__eyebrow">Acceso al sistema</p>
-            <h2 class="auth__title">Iniciar sesión</h2>
-            <p class="auth__subtitle">Identifíquese con las credenciales asignadas por la administración.</p>
-
-            {% if registered %}
-            <p class="alert alert--success">Registro exitoso. Ahora puede iniciar sesión con sus credenciales.</p>
-            {% endif %}
-
-            {% if error %}
-            <p class="alert alert--error">{{ error }}</p>
-            {% endif %}
-
-            <form class="form" method="post" action="/login">
-                <label class="form__label" for="username">Usuario</label>
-                <input class="form__input" id="username" name="username" type="text"
-                       value="{{ username or '' }}" required autofocus autocomplete="username">
-
-                <label class="form__label" for="password">Contraseña</label>
-                <input class="form__input" id="password" name="password" type="password" required autocomplete="current-password">
-
-                <button class="btn btn--primary btn--block" type="submit">Ingresar</button>
-            </form>
-
-            <p class="auth__alt">¿No tiene cuenta? <a href="/register">Regístrese como Importador o Exportador</a></p>
-        </div>
+<section class="it-login-shell" aria-label="Acceso a International Trade">
+  <div class="it-login-showcase" data-auth-slider aria-roledescription="carrusel" aria-label="Conoce International Trade">
+    <div class="it-login-brand">
+      <img src="/static/img/brand.svg" alt="" width="48" height="48">
+      <span><strong>International Trade</strong><small>PORTAL DE COMERCIO EXTERIOR</small></span>
     </div>
+
+    <!-- CAMBIA LAS FOTOS AQUI: src="/static/img/login/tu-foto.jpg" -->
+    <article class="it-login-slide is-active" data-auth-slide aria-hidden="false">
+      <img class="it-login-slide-image" src="/static/img/login/slide-1.svg" alt="Buque de carga y contenedores en un puerto" fetchpriority="high">
+      <div class="it-login-slide-copy">
+        <span class="it-login-kicker">BIENVENIDO A INTERNATIONAL TRADE</span>
+        <h1>Tu próxima importación comienza con <em>información clara.</em></h1>
+        <p>Organiza operaciones, consulta recursos y planifica tus costos desde un solo lugar.</p>
+      </div>
+    </article>
+    <article class="it-login-slide" data-auth-slide aria-hidden="true">
+      <img class="it-login-slide-image" src="/static/img/login/slide-2.svg" alt="Avión de carga y mercancías en tránsito" loading="lazy">
+      <div class="it-login-slide-copy">
+        <span class="it-login-kicker">COSTOS Y LOGÍSTICA</span>
+        <h1>Antes de importar, conoce <em>tus opciones.</em></h1>
+        <p>Explora una calculadora orientativa y organiza la información de tus operaciones.</p>
+      </div>
+    </article>
+    <article class="it-login-slide" data-auth-slide aria-hidden="true">
+      <img class="it-login-slide-image" src="/static/img/login/slide-3.svg" alt="Mapa de rutas de comercio entre China y Ecuador" loading="lazy">
+      <div class="it-login-slide-copy">
+        <span class="it-login-kicker">CHINA · ECUADOR</span>
+        <h1>Más control para tomar <em>mejores decisiones.</em></h1>
+        <p>Accede a tus registros y al centro de información para comercio exterior.</p>
+      </div>
+    </article>
+
+    <div class="it-login-showcase-bottom">
+      <div class="it-login-slider-controls" aria-label="Controlar imágenes">
+        <button type="button" class="it-login-arrow" data-auth-prev aria-label="Imagen anterior">‹</button>
+        <button type="button" class="it-login-dot is-active" data-auth-dot="0" aria-label="Mostrar imagen 1" aria-current="true"></button>
+        <button type="button" class="it-login-dot" data-auth-dot="1" aria-label="Mostrar imagen 2"></button>
+        <button type="button" class="it-login-dot" data-auth-dot="2" aria-label="Mostrar imagen 3"></button>
+        <button type="button" class="it-login-arrow" data-auth-next aria-label="Siguiente imagen">›</button>
+      </div>
+      <span class="it-login-trust">Planificación · Información · Comercio exterior</span>
+    </div>
+  </div>
+
+  <div class="it-login-panel">
+    <div class="it-login-panel-inner">
+      <div class="it-login-panel-brand">
+        <img src="/static/img/brand.svg" alt="" width="50" height="50">
+        <div><strong>International Trade</strong><span>Plataforma para importadores</span></div>
+      </div>
+      <span class="it-login-panel-kicker">ACCESO A TU CUENTA</span>
+      <h2>Bienvenido de nuevo</h2>
+      <p class="it-login-panel-intro">Ingresa para continuar con tus herramientas y operaciones.</p>
+      {% if registered %}<div class="alert alert--success" role="status">Cuenta creada correctamente. Inicia sesión para continuar.</div>{% endif %}
+      {% if error %}<div class="alert alert--error" role="alert">{{ error }}</div>{% endif %}
+      <form class="it-login-form" method="post" action="/login">
+        <label for="username">Correo electrónico o usuario</label>
+        <input id="username" name="username" type="text" value="{{ username or '' }}" placeholder="tu@correo.com" autocomplete="username" required autofocus>
+        <label for="password">Contraseña</label>
+        <div class="it-login-password">
+          <input id="password" name="password" type="password" placeholder="Ingresa tu contraseña" autocomplete="current-password" required>
+          <button type="button" data-password-toggle aria-label="Mostrar contraseña" aria-pressed="false">Mostrar</button>
+        </div>
+        <button class="it-login-submit" type="submit">Ingresar al portal <span aria-hidden="true">→</span></button>
+      </form>
+      <p class="it-login-register">¿Aún no tienes una cuenta? <a href="/register">Crear cuenta gratis</a></p>
+      <div class="it-login-footnote"><span class="it-login-footnote-icon">✓</span> Tu sesión está protegida con autenticación.</div>
+    </div>
+    <div class="it-login-panel-footer">© International Trade · Proyecto académico</div>
+  </div>
 </section>
 {% endblock %}

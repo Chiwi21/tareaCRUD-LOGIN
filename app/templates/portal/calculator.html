@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Calculadora de importación · International Trade{% endblock %}
+{% macro num(key,label,help='',step='any',minval='0') %}
+<label class="tr-field"><span>{{ label }}</span><input name="{{ key }}" type="number" step="{{ step }}" min="{{ minval }}" inputmode="decimal" value="{{ values.get(key,'') }}" {% if key != 'insurance_amount' %}required{% endif %}>{% if help %}<small>{{ help }}</small>{% endif %}</label>
+{% endmacro %}
+{% block content %}
+<section class="tr-page">
+ <div class="tr-heading"><div><div class="tr-overline">HERRAMIENTAS / FINANZAS</div><h1>Calculadora de importación</h1><p>Antes de pagar al proveedor, conoce el desembolso aproximado y comprueba si tu presupuesto alcanza.</p></div><span class="tr-date-tag">Simulación · USD</span></div>
+ <div class="tr-callout"><strong>Importante:</strong> utiliza una cotización del producto equivalente a valor FOB o ajusta los costos de origen. Si te cotizaron EXW, CIF u otro Incoterm, revisa qué gastos ya están incluidos para evitar duplicarlos. Los porcentajes arancelarios son editables y <strong>no se consultan automáticamente en SENAE</strong>.</div>
+ {% if error %}<div class="alert alert--error" role="alert">{{ error }}</div>{% endif %}
+ <div class="tr-calculator-grid">
+   <section class="tr-box tr-calc-input">
+      <div class="tr-box-header"><div><span class="tr-step">01</span><h2>Información para el presupuesto</h2></div><small>Campos expresados en USD</small></div>
+      <form method="post" action="/herramientas/calculadora">
+        <div class="tr-form-section"><h3>Mercancía y presupuesto</h3><div class="tr-input-grid tr-input-grid--3">
+            {{ num('budget','Presupuesto disponible','Capital máximo para esta compra') }}
+            {{ num('quantity','Cantidad de unidades','','1','1') }}
+            {{ num('unit_price','Precio por unidad','Valor comercial supuesto FOB') }}
+        </div></div>
+        <div class="tr-form-section"><h3>Transporte y seguro</h3><div class="tr-input-grid">
+            {{ num('origin_charges','Gastos adicionales en origen','Solo si no están incluidos en el FOB') }}
+            {{ num('freight','Flete internacional','Cotización hasta Ecuador') }}
+            {{ num('insurance_pct','Seguro (%)','Sobre producto + origen + flete') }}
+            {{ num('insurance_amount','Seguro cotizado (USD)','Opcional; sustituye el % si se ingresa') }}
+        </div></div>
+        <div class="tr-form-section"><h3>Tributos de importación</h3><div class="tr-input-grid tr-input-grid--4">
+            {{ num('duty_pct','Arancel (%)','Según subpartida') }}
+            {{ num('fodinfa_pct','FODINFA (%)','Referencia SENAE: 0,5 %') }}
+            {{ num('vat_pct','IVA (%)','Revisar tarifa vigente') }}
+            {{ num('ice','ICE (USD)','Solo si corresponde') }}
+        </div></div>
+        <div class="tr-form-section"><h3>Nacionalización y entrega</h3><div class="tr-input-grid tr-input-grid--3">
+            {{ num('destination_charges','Terminal / manejo','Bodega, puerto, aeropuerto') }}
+            {{ num('broker','Despacho aduanero','Honorarios de gestión') }}
+            {{ num('delivery','Transporte local','Hasta bodega o dirección') }}
+            {{ num('isd','ISD (USD)','Si aplica; ingresar manualmente') }}
+            {{ num('other','Otros gastos','Inspecciones, bodegaje, extras') }}
+        </div></div>
+        <div class="tr-form-footer"><button type="submit" class="tr-primary">Calcular mi presupuesto</button><span>No se guarda ni modifica ninguna operación.</span></div>
+      </form>
+   </section>
+   <section class="tr-box tr-results">
+     <div class="tr-box-header"><div><span class="tr-step">02</span><h2>Resultado de la simulación</h2></div>{% if is_example %}<small>Ejemplo precargado</small>{% endif %}</div>
+     {% if result %}
+     <div class="tr-big-number"><span>Desembolso total estimado</span><strong>$ {{ result.total|money }}</strong><small>Incluye IVA como salida de efectivo, no necesariamente costo definitivo.</small></div>
+     <div class="tr-result-kpis"><div><span>Costo por unidad</span><strong>$ {{ result.unit_total|money }}</strong></div><div><span>Impuestos estimados</span><strong>$ {{ result.taxes|money }}</strong></div></div>
+     <div class="tr-budget {% if not result.within_budget %}tr-budget--bad{% endif %}"><span>{% if result.within_budget %}PRESUPUESTO SUFICIENTE{% else %}PRESUPUESTO INSUFICIENTE{% endif %}</span><strong>{% if result.within_budget %}Sobrarían $ {{ result.budget_remaining|money }}{% else %}Faltarían $ {{ result.budget_shortfall|money }}{% endif %}</strong><small>Disponibles: $ {{ result.budget|money }}</small></div>
+     <div class="tr-breakdown"><h3>Desglose del cálculo</h3>
+       {% for label,value in [
+        ('Mercancía',result.merchandise),('Gastos en origen',result.origin_charges),
+        ('Flete internacional',result.freight),('Seguro',result.insurance),
+        ('Base CIF estimada',result.cif),('Arancel',result.duty),('FODINFA',result.fodinfa),
+        ('ICE ingresado',result.ice),('IVA estimado',result.vat),('Total tributos',result.taxes),
+        ('Terminal y manejo',result.destination_charges),('Gestión aduanera',result.broker),
+        ('Transporte local',result.delivery),('ISD informado',result.isd),('Otros gastos',result.other)
+       ] %}<div class="tr-breakdown-row {% if label in ['Base CIF estimada','Total tributos'] %}is-emphasis{% endif %}"><span>{{ label }}</span><b>$ {{ value|money }}</b></div>{% endfor %}
+       <div class="tr-breakdown-row tr-breakdown-total"><span>TOTAL DE EFECTIVO</span><strong>$ {{ result.total|money }}</strong></div>
+     </div>
+     <p class="tr-fineprint">Si el IVA es recuperable bajo tu situación tributaria, el costo económico podría diferir del desembolso. Simulación sin clasificación ni liquidación oficial: no contempla todos los regímenes, salvaguardias, preferencias, gastos extraordinarios ni ajustes de valoración.</p>
+     {% else %}<p>Ingresa valores válidos y calcula nuevamente.</p>{% endif %}
+   </section>
+ </div>
+ <section class="tr-box tr-guide-box"><div class="tr-box-header"><div><span class="tr-step">03</span><h2>Guía: cómo se calcula una importación</h2></div><small>Aprende los conceptos antes de cotizar</small></div>
+   <div class="tr-guide-grid"><div>
+      <details open><summary>1. ¿Cuál es el valor CIF?</summary><p>Para esta simulación: mercancía + gastos de origen no incluidos + flete internacional + seguro. Esta aproximación sirve para presupuestar, pero la valoración aduanera oficial puede requerir ajustes y documentos de soporte.</p></details>
+      <details><summary>2. ¿Cómo se calculan arancel y FODINFA?</summary><p>Arancel ad valorem: CIF aproximado × porcentaje aplicable. FODINFA: base imponible × porcentaje. El arancel real depende de la subpartida, origen y preferencias válidas. Consulta SENAE.</p></details>
+      <details><summary>3. ¿Cómo se calcula el IVA?</summary><p>Sobre la base imponible aduanera más arancel, FODINFA e ICE cuando aplica. El IVA de importación es una salida de caja que puede tener tratamiento de crédito tributario para algunos importadores.</p></details>
+      <details><summary>4. ¿Por qué debo añadir gastos locales?</summary><p>El flete del proveedor no suele incluir necesariamente terminal, desconsolidación, trámites, inspección, bodegaje, despacho aduanero y entrega local. Solicita un desglose escrito a tu agente de carga.</p></details>
+      <details><summary>5. ¿Qué sucede si mi presupuesto no alcanza?</summary><p>El resultado mostrará el faltante, no solo el monto de impuestos. Puedes comparar menos unidades, otro precio, una modalidad logística distinta o postergar la compra.</p></details>
+   </div><aside class="tr-example"><strong>Ejemplo de uso</strong><p>Deseas importar 1.000 productos a $5 cada uno, con $10.000 disponibles.</p><ol><li>Mercancía: $5.000</li><li>Agrega flete, seguro y gastos locales cotizados.</li><li>Introduce la tasa arancelaria verificada.</li><li>Revisa el total, costo unitario y saldo de presupuesto.</li></ol><a href="https://www.aduana.gob.ec/servicio-al-ciudadano/para-importar/" target="_blank" rel="noopener noreferrer">Consultar SENAE →</a><p class="tr-fineprint">Los datos precargados son solo un ejemplo; no son una cotización de transporte.</p></aside></div>
+ </section>
+</section>
+{% endblock %}

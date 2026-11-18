@@ -15,7 +15,7 @@ from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from typing import get_protocol_members
+from typing_extensions import get_protocol_members
 
 from app.core.costing import (
     CostCalculator,

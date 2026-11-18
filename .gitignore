@@ -8,3 +8,12 @@ data/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Local and deployment artifacts
+*.sqlite
+*.sqlite3
+*.log
+*.pem
+*.key
+.DS_Store
+.env.production

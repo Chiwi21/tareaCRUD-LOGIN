@@ -13,6 +13,10 @@ from app.dependencies import (
     get_operation_service,
 )
 from app.flash import flash
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.routers.planning import parse_profile, save_profile, detail_context
+from app.core.regulatory import CATEGORY_LABELS
 from app.models import User
 from app.repositories.protocols import OperationFilters
 from app.schemas import (
@@ -43,6 +47,8 @@ FORM_FIELDS = (
     "incoterm_id",
     "status",
     "notes",
+    "product_category", "product_name", "product_description", "hs_code",
+    "project_quantity", "project_unit_price", "project_budget",
 )
 
 
@@ -147,6 +153,8 @@ def _render_form(
             "errors": errors,
             "operation": operation,
             "is_edit": operation is not None,
+            "is_admin": user.role == ROLE_ADMIN,
+            "categories": CATEGORY_LABELS,
             "title": "Editar operación" if operation else "Nueva operación",
             "action_url": f"/operations/{operation.id}/edit" if operation else "/operations/new",
             "cancel_url": f"/operations/{operation.id}" if operation else "/operations",
@@ -198,7 +206,7 @@ def list_operations(
 @router.get("/operations/new")
 def new_operation_form(
     request: Request,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_login),
     service: OperationService = Depends(get_operation_service),
 ):
     return _render_form(
@@ -209,20 +217,30 @@ def new_operation_form(
 @router.post("/operations/new")
 async def create_operation(
     request: Request,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_login),
     service: OperationService = Depends(get_operation_service),
+    db: Session = Depends(get_db),
 ):
     form = await request.form()
     values = _form_values(form)
     try:
+        profile_data = parse_profile(form)
         data = _operation_create(form)
-    except (ValueError, PydanticValidationError):
-        return _render_form(request, user, service, values, ["Revise los datos del formulario."])
+        if user.role != ROLE_ADMIN:
+            # El usuario público solo puede crear una operación para sí mismo.
+            # Nunca confiar en user_id/company_id/status enviados por navegador.
+            data.user_id = user.id
+            data.company_id = None
+            data.type = "IMPORT" if user.role == "IMPORTER" else "EXPORT"
+            data.status = "PENDING"
+    except (ValueError, PydanticValidationError) as exc:
+        return _render_form(request, user, service, values, [str(exc) or "Revise los datos del formulario."])
     try:
         operation = service.create(data, user.id)
+        save_profile(db, operation.id, profile_data)
     except ValidationError as exc:
         return _render_form(request, user, service, values, exc.errors)
-    flash(request, f"Operación {operation.code} creada correctamente.", "success")
+    flash(request, f"Operación {operation.code} creada. Consulta el diagnóstico regulatorio preliminar.", "success")
     return RedirectResponse(f"/operations/{operation.id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -234,6 +252,7 @@ def operation_detail(
     service: OperationService = Depends(get_operation_service),
     cost_service: CostService = Depends(get_cost_service),
     document_service: DocumentService = Depends(get_document_service),
+    db: Session = Depends(get_db),
 ):
     operation = _get_for_user(service, operation_id, user)
     context = service.form_context()
@@ -253,6 +272,7 @@ def operation_detail(
             "open_alerts": [alert for alert in operation.alerts if alert.status == "OPEN"],
             "status_options": OPERATION_STATUS_FLOW.get(operation.status, ()),
             **context,
+            **detail_context(db, operation_id),
         },
     )
 
@@ -263,6 +283,7 @@ def edit_operation_form(
     operation_id: int,
     user: User = Depends(require_admin),
     service: OperationService = Depends(get_operation_service),
+    db: Session = Depends(get_db),
 ):
     operation = service.get(operation_id)
     values = {
@@ -277,6 +298,13 @@ def edit_operation_form(
         "status": operation.status,
         "notes": operation.notes or "",
     }
+    from app.models import OperationTradeProfile
+    profile = db.query(OperationTradeProfile).filter_by(operation_id=operation_id).first()
+    if profile:
+        values.update({"product_category":profile.category,"product_name":profile.product_name,
+          "product_description":profile.product_description,"hs_code":profile.hs_code,
+          "project_quantity":str(profile.quantity),"project_unit_price":str(profile.unit_price),
+          "project_budget":str(profile.budget)})
     return _render_form(request, user, service, values, [], operation)
 
 
@@ -286,18 +314,21 @@ async def update_operation(
     operation_id: int,
     user: User = Depends(require_admin),
     service: OperationService = Depends(get_operation_service),
+    db: Session = Depends(get_db),
 ):
     operation = service.get(operation_id)
     form = await request.form()
     values = _form_values(form)
     try:
         data = _operation_update(form)
-    except (ValueError, PydanticValidationError):
+        profile_data = parse_profile(form)
+    except (ValueError, PydanticValidationError) as exc:
         return _render_form(
             request, user, service, values, ["Revise los datos del formulario."], operation
         )
     try:
         updated = service.update(operation_id, data, user.id)
+        save_profile(db, operation_id, profile_data)
     except ValidationError as exc:
         return _render_form(request, user, service, values, exc.errors, operation)
     flash(request, f"Operación {updated.code} actualizada correctamente.", "success")
